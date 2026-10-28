@@ -77,6 +77,11 @@ h1 ping -c 5 10.0.0.6
 ```
 
 `pingall` should return `0% dropped (30/30 received)`.
+
+Our run passed all 30 directed host-pair checks with 0% packet loss.
+
+![pingall result: 30/30 received, 0% dropped](docs/images/pingall.png)
+
 The h1-to-h6 path should be:
 
 ```text
