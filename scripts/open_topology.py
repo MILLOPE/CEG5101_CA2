@@ -40,7 +40,7 @@ try:
     app.loadTopology()
 finally:
     editor.tkFileDialog.askopenfile = original
-app.top.title('CEG5101 Assignment | shumin & shuhui')
+app.top.title('CEG5101 Assignment | Shumin Meng & FOO Shu Hui')
 try:
     app.mainloop()
 except KeyboardInterrupt:
