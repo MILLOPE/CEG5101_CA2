@@ -6,11 +6,10 @@ The mesh topology from `ceg_mesh_topo.py`, opened in MiniEdit and connected to
 a Ryu controller. The controller uses Dijkstra for unicast routing and a
 minimum spanning tree for broadcast traffic.
 
-## Before starting
+## Requirements
 
-Our setup is Ubuntu 20.04, Python 3.8 and OpenFlow 1.3, running in Multipass
-on an Apple Silicon Mac. Run the commands below inside Ubuntu. MiniEdit needs
-an Ubuntu desktop session; [Mac VM setup](docs/mac-setup.md) covers that step.
+The setup script supports Ubuntu 20.04 with Python 3.8. MiniEdit needs a
+Linux desktop session. For a Mac VM, see [VM setup](docs/mac-setup.md).
 
 ## Install
 
@@ -20,21 +19,8 @@ cd CEG5101_CA2
 bash scripts/setup.sh
 ```
 
-If the repository is private, sign in to GitHub to download the ZIP, or use
-Git with an account that has access. Your Mac's SSH key is not automatically
-available inside Ubuntu.
-
-The setup script installs Mininet, Open vSwitch, Tk and Ryu. It creates `.venv`
-for Ryu and requires Ubuntu 20.04 with Python 3.8. Keep the pinned dependencies:
-newer setuptools and eventlet versions can break Ryu 4.34.
-
-For a faster Python package download in China:
-
-```bash
-PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple bash scripts/setup.sh
-```
-
-APT and Git downloads still use their configured sources.
+Run these commands inside Ubuntu. The script installs Mininet, Open vSwitch,
+Tk and Ryu, using `.venv` for the controller's Python dependencies.
 
 ## Run
 
@@ -97,8 +83,8 @@ sh ovs-ofctl -O OpenFlow13 dump-flows s2
 sh ovs-ofctl -O OpenFlow13 dump-flows s6
 ```
 
-The priority-100 rules show the source/destination MAC addresses and output
-ports. The priority-0 rule sends unmatched packets to the controller.
+Priority-100 rules forward packets to the listed output ports. The priority-0
+rule sends unmatched packets to the controller.
 
 ### Automated checks
 
@@ -176,8 +162,7 @@ sudo python3 scripts/generate_topology.py
 sudo python3 tests/check_topology.py
 ```
 
-Controller state is saved in `results/data/topology_state.json`.
-Logs and test results are under `results/logs/` and `results/data/`.
+Logs and test results are saved in `results/`.
 
 ## Common problems
 
@@ -203,10 +188,9 @@ Use MiniEdit when demonstrating the assignment's first task.
 
 ## Test notes and sources
 
-On our Ubuntu 20.04 aarch64 VM, `pingall` passed 30/30 and the counter check
-confirmed s1–s2–s6. The Ryu dependencies also installed in a fresh Python 3.8
-virtual environment, with `pip check` passing. We have not repeated the full
-setup on a newly created VM.
+Tested on Ubuntu 20.04 (aarch64): all 30 ping checks passed, and forwarding
+counters confirmed the s1–s2–s6 path. Ryu dependencies were also checked in a
+fresh Python 3.8 environment. Full setup on a new VM has not been tested.
 
 The topology and reference routing approach come from the CEG5101 CA2 course
 materials. MiniEdit's author credits and license are kept in `vendor/`.
