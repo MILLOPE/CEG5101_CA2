@@ -1,7 +1,5 @@
 # CEG5101 CA2 — Part 1
 
-Shumin Meng & FOO Shu Hui
-
 The mesh topology from `ceg_mesh_topo.py`, opened in MiniEdit and connected to
 a Ryu controller. The controller uses Dijkstra for unicast routing and a
 minimum spanning tree for broadcast traffic.
@@ -51,7 +49,7 @@ Topology: 6 switches, 11/11 links; ready=True
 The switches connect to the controller at `127.0.0.1:6653`. The red dotted
 lines in MiniEdit show these controller connections.
 
-![MiniEdit topology — Shumin Meng & FOO Shu Hui](docs/images/topology.png)
+![MiniEdit topology](docs/images/topology.png)
 
 ## Check the network
 
