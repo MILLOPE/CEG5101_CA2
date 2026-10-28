@@ -65,6 +65,8 @@ Topology: 6 switches, 11/11 links; ready=True
 The switches connect to the controller at `127.0.0.1:6653`. The red dotted
 lines in MiniEdit show these controller connections.
 
+![MiniEdit topology — Shumin Meng & FOO Shu Hui](docs/images/topology.png)
+
 ## Check the network
 
 Enter these commands at `mininet>`:
