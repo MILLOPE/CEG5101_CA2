@@ -4,6 +4,7 @@ cd "$(dirname "$0")/.."
 
 if [[ "${1:-}" == "plot" ]]; then
     .venv/bin/python tools/plot_qn2.py examples/qn2/result.json --output figures/qn2-example
+    .venv/bin/python tools/plot_qn2_repeats.py
 else
     run_name="$(date +%Y%m%d-%H%M%S)"
     mkdir -p results/qn2

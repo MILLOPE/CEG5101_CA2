@@ -100,7 +100,13 @@ bash scripts/run_qn2.sh plot
 
 The [saved Qn2 results](docs/qn2.md#saved-results) include measurements and
 figures from a separate automated run. Edit `tools/plot_style.py` to adjust colors, font and figure size.
-Plots are exported as PNG, SVG and PDF.
+Plots are saved as PNG.
+
+Three fresh runs also passed the blocking and connectivity checks:
+
+![Three Qn2 repeat tests](docs/images/qn2-repeats.png)
+
+[Repeat measurements](examples/qn2/repeats/summary.csv)
 
 ## Stop or repeat
 

@@ -34,7 +34,7 @@ bash scripts/run_qn2.sh plot
 ```
 
 Edit `tools/plot_style.py` for colors, font, size and line width. Each plot is
-exported as PNG, SVG and PDF.
+exported as PNG.
 
 The [README](../README.md#qn2-anomaly-detection-and-blocking) gives the manual
 MiniEdit commands. Stop the foreground flood with
@@ -70,3 +70,15 @@ the attacking source and the legitimate host pair separately.
 
 The measurements and controller log are in `examples/qn2/`. These checks
 support ICMP source blocking and connectivity in this run.
+
+## Repeat checks
+
+Three fresh runs used the same normal-ping and 10-second flood sequence.
+All three blocked h2 on six switches, recorded zero matching forwarded
+packets in the post-block observation window, and received 3/3 h1 replies.
+The observed rates and delays varied between runs.
+
+![Three repeat tests](images/qn2-repeats.png)
+
+The CSV summary and per-run measurements are in `examples/qn2/repeats/`.
+These are three observations under the same test procedure.

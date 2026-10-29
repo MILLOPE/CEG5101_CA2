@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "flood_duration_seconds": 10,
+  "controller_sha256": "11546179dab7b4e9e4d899971d0b4e9c33efbe34b8a8be0313683689cd75c034",
+  "h2_normal": "PING 10.0.0.3 (10.0.0.3) 56(84) bytes of data.\r\n64 bytes from 10.0.0.3: icmp_seq=1 ttl=64 time=230 ms\r\n64 bytes from 10.0.0.3: icmp_seq=2 ttl=64 time=106 ms\r\n64 bytes from 10.0.0.3: icmp_seq=3 ttl=64 time=109 ms\r\n64 bytes from 10.0.0.3: icmp_seq=4 ttl=64 time=104 ms\r\n64 bytes from 10.0.0.3: icmp_seq=5 ttl=64 time=109 ms\r\n64 bytes from 10.0.0.3: icmp_seq=6 ttl=64 time=90.7 ms\r\n64 bytes from 10.0.0.3: icmp_seq=7 ttl=64 time=101 ms\r\n64 bytes from 10.0.0.3: icmp_seq=8 ttl=64 time=120 ms\r\n64 bytes from 10.0.0.3: icmp_seq=9 ttl=64 time=119 ms\r\n64 bytes from 10.0.0.3: icmp_seq=10 ttl=64 time=96.4 ms\r\n64 bytes from 10.0.0.3: icmp_seq=11 ttl=64 time=119 ms\r\n64 bytes from 10.0.0.3: icmp_seq=12 ttl=64 time=104 ms\r\n64 bytes from 10.0.0.3: icmp_seq=13 ttl=64 time=102 ms\r\n64 bytes from 10.0.0.3: icmp_seq=14 ttl=64 time=105 ms\r\n64 bytes from 10.0.0.3: icmp_seq=15 ttl=64 time=102 ms\r\n64 bytes from 10.0.0.3: icmp_seq=16 ttl=64 time=94.4 ms\r\n64 bytes from 10.0.0.3: icmp_seq=17 ttl=64 time=104 ms\r\n64 bytes from 10.0.0.3: icmp_seq=18 ttl=64 time=122 ms\r\n64 bytes from 10.0.0.3: icmp_seq=19 ttl=64 time=95.6 ms\r\n64 bytes from 10.0.0.3: icmp_seq=20 ttl=64 time=125 ms\r\n\r\n--- 10.0.0.3 ping statistics ---\r\n20 packets transmitted, 20 received, 0% packet loss, time 19111ms\r\nrtt min/avg/max/mdev = 90.680/112.862/229.897/28.481 ms\r\n",
+  "h1_normal": "PING 10.0.0.6 (10.0.0.6) 56(84) bytes of data.\n64 bytes from 10.0.0.6: icmp_seq=1 ttl=64 time=327 ms\n64 bytes from 10.0.0.6: icmp_seq=2 ttl=64 time=105 ms\n64 bytes from 10.0.0.6: icmp_seq=3 ttl=64 time=132 ms\n64 bytes from 10.0.0.6: icmp_seq=4 ttl=64 time=126 ms\n64 bytes from 10.0.0.6: icmp_seq=5 ttl=64 time=115 ms\n64 bytes from 10.0.0.6: icmp_seq=6 ttl=64 time=135 ms\n64 bytes from 10.0.0.6: icmp_seq=7 ttl=64 time=110 ms\n64 bytes from 10.0.0.6: icmp_seq=8 ttl=64 time=150 ms\n64 bytes from 10.0.0.6: icmp_seq=9 ttl=64 time=120 ms\n64 bytes from 10.0.0.6: icmp_seq=10 ttl=64 time=116 ms\n64 bytes from 10.0.0.6: icmp_seq=11 ttl=64 time=150 ms\n64 bytes from 10.0.0.6: icmp_seq=12 ttl=64 time=164 ms\n64 bytes from 10.0.0.6: icmp_seq=13 ttl=64 time=221 ms\n64 bytes from 10.0.0.6: icmp_seq=14 ttl=64 time=158 ms\n64 bytes from 10.0.0.6: icmp_seq=15 ttl=64 time=140 ms\n64 bytes from 10.0.0.6: icmp_seq=16 ttl=64 time=115 ms\n64 bytes from 10.0.0.6: icmp_seq=17 ttl=64 time=183 ms\n64 bytes from 10.0.0.6: icmp_seq=18 ttl=64 time=156 ms\n64 bytes from 10.0.0.6: icmp_seq=19 ttl=64 time=123 ms\n64 bytes from 10.0.0.6: icmp_seq=20 ttl=64 time=127 ms\n\n--- 10.0.0.6 ping statistics ---\n20 packets transmitted, 20 received, 0% packet loss, time 19109ms\nrtt min/avg/max/mdev = 105.005/148.651/327.393/49.200 ms\n",
+  "flood_start": 1793252813.4691596,
+  "block_observed": 1793252814.3921168,
+  "detection_observed_seconds": 0.922957181930542,
+  "sender_running_at_block": true,
+  "drop_rule_switches": [
+    "s1",
+    "s2",
+    "s3",
+    "s4",
+    "s5",
+    "s6"
+  ],
+  "counter_window_seconds": 1.5142772197723389,
+  "s2_counter_delta": {
+    "drop": 100071,
+    "forward": 0
+  },
+  "sender_running_after_counter_window": true,
+  "h1_during_block": "PING 10.0.0.6 (10.0.0.6) 56(84) bytes of data.\r\n64 bytes from 10.0.0.6: icmp_seq=1 ttl=64 time=141 ms\r\n64 bytes from 10.0.0.6: icmp_seq=2 ttl=64 time=126 ms\r\n64 bytes from 10.0.0.6: icmp_seq=3 ttl=64 time=136 ms\r\n\r\n--- 10.0.0.6 ping statistics ---\r\n3 packets transmitted, 3 received, 0% packet loss, time 2001ms\r\nrtt min/avg/max/mdev = 126.302/134.565/140.951/6.126 ms\r\n",
+  "h2_after_block": "PING 10.0.0.3 (10.0.0.3) 56(84) bytes of data.\r\n\r\n--- 10.0.0.3 ping statistics ---\r\n3 packets transmitted, 0 received, 100% packet loss, time 2049ms\r\n\r\n",
+  "h3_healthy": "PING 10.0.0.6 (10.0.0.6) 56(84) bytes of data.\r\n64 bytes from 10.0.0.6: icmp_seq=1 ttl=64 time=213 ms\r\n64 bytes from 10.0.0.6: icmp_seq=2 ttl=64 time=89.6 ms\r\n64 bytes from 10.0.0.6: icmp_seq=3 ttl=64 time=83.6 ms\r\n\r\n--- 10.0.0.6 ping statistics ---\r\n3 packets transmitted, 3 received, 0% packet loss, time 2011ms\r\nrtt min/avg/max/mdev = 83.568/128.687/212.867/59.575 ms\r\n",
+  "blocked_sources": [
+    "10.0.0.2"
+  ],
+  "samples_file": "samples.jsonl"
+}

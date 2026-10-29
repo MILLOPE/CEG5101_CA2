@@ -1,0 +1,12 @@
+{"time": 1793252804.2910187, "source": "10.0.0.1", "rate_pps": 0.9999328658354236, "baseline_before": null, "baseline_after": 0.9999328658354236, "threshold_pps": null, "status": "baseline"}
+{"time": 1793252804.2934148, "source": "10.0.0.2", "rate_pps": 0.9995004766227968, "baseline_before": null, "baseline_after": 0.9995004766227968, "threshold_pps": null, "status": "baseline"}
+{"time": 1793252809.2918174, "source": "10.0.0.2", "rate_pps": 1.0001808493509645, "baseline_before": 0.9995004766227968, "baseline_after": 0.9997045884412471, "threshold_pps": 2.9985014298683907, "status": "normal"}
+{"time": 1793252809.2921095, "source": "10.0.0.1", "rate_pps": 0.9996474079191028, "baseline_before": 0.9999328658354236, "baseline_after": 0.9998472284605273, "threshold_pps": 2.999798597506271, "status": "normal"}
+{"time": 1793252814.2910302, "source": "10.0.0.1", "rate_pps": 1.0002140026202087, "baseline_before": 0.9998472284605273, "baseline_after": 0.9999572607084317, "threshold_pps": 2.999541685381582, "status": "normal"}
+{"time": 1793252814.2919052, "source": "10.0.0.2", "rate_pps": 4407.816999288873, "baseline_before": 0.9997045884412471, "baseline_after": 0.9997045884412471, "threshold_pps": 2.999113765323741, "status": "detected"}
+{"time": 1793252819.2907588, "source": "10.0.0.1", "rate_pps": 0.6000294127576978, "baseline_before": 0.9999572607084317, "baseline_after": 0.8799789063232115, "threshold_pps": 2.999871782125295, "status": "normal"}
+{"time": 1793252819.2908592, "source": "10.0.0.2", "rate_pps": 5154.089020952637, "baseline_before": 0.9997045884412471, "baseline_after": 0.9997045884412471, "threshold_pps": 2.999113765323741, "status": "blocked"}
+{"time": 1793252824.2988036, "source": "10.0.0.1", "rate_pps": 0.0, "baseline_before": 0.8799789063232115, "baseline_after": 0.8799789063232115, "threshold_pps": 2.6399367189696346, "status": "normal"}
+{"time": 1793252824.299163, "source": "10.0.0.2", "rate_pps": 0.0, "baseline_before": 0.9997045884412471, "baseline_after": 0.9997045884412471, "threshold_pps": 2.999113765323741, "status": "blocked"}
+{"time": 1793252829.294135, "source": "10.0.0.1", "rate_pps": 0.0, "baseline_before": 0.8799789063232115, "baseline_after": 0.8799789063232115, "threshold_pps": 2.6399367189696346, "status": "normal"}
+{"time": 1793252829.294218, "source": "10.0.0.2", "rate_pps": 0.0, "baseline_before": 0.9997045884412471, "baseline_after": 0.9997045884412471, "threshold_pps": 2.999113765323741, "status": "blocked"}

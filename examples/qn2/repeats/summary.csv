@@ -1,0 +1,4 @@
+run,passed,rate_at_detection_pps,ema_before_detection_pps,threshold_pps,observed_delay_s,counter_window_s,drop_counter_increase,forward_counter_increase,h2_normal_replies,h2_after_block_replies,h1_during_block_replies,h3_after_flood_replies,block_rule_switches,blocked_sources,sender_active_during_counter_check
+1,True,4407.82,0.9997,2.9991,0.923,1.514,100071,0,20/20,0/3,3/3,3/3,6,10.0.0.2,True
+2,True,11316.17,0.9987,2.996,1.025,1.504,99774,0,20/20,0/3,3/3,3/3,6,10.0.0.2,True
+3,True,8820.42,0.8587,2.5762,1.167,1.508,100858,0,20/20,0/3,3/3,3/3,6,10.0.0.2,True

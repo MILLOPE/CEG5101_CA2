@@ -9,7 +9,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.ticker import FuncFormatter
-from plot_style import apply_style, COLORS, DPI, FORMATS, SIZES
+from plot_style import apply_style, COLORS, DPI, SIZES
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('result', type=Path, help='result.json from tests/check_qn2.py')
@@ -31,8 +31,7 @@ blue, green, red = COLORS['rate'], COLORS['ema'], COLORS['block']
 def save(fig, name):
     sns.despine(fig=fig)
     fig.tight_layout()
-    for ext in FORMATS:
-        fig.savefig(output / (name + '.' + ext), dpi=DPI, facecolor='white', bbox_inches='tight')
+    fig.savefig(output / (name + '.png'), dpi=DPI, facecolor='white', bbox_inches='tight')
     plt.close(fig)
 
 
@@ -136,4 +135,4 @@ ax.text(0.5, 0.01, 'Legitimate h1 → h6: %d/%d replies before flood; %d/%d duri
         ha='center', fontsize=10, color=green)
 ax.set(xlim=(0, 1), ylim=(-0.04, 1))
 save(fig, 'qn2-overview')
-print('Saved PNG, SVG and PDF figures:', output)
+print('Saved PNG figures:', output)

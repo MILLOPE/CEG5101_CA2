@@ -1,0 +1,10 @@
+{"time": 1793252845.6829824, "source": "10.0.0.1", "rate_pps": 0.998475162314251, "baseline_before": null, "baseline_after": 0.998475162314251, "threshold_pps": null, "status": "baseline"}
+{"time": 1793252845.6833956, "source": "10.0.0.2", "rate_pps": 0.9983054315208778, "baseline_before": null, "baseline_after": 0.9983054315208778, "threshold_pps": null, "status": "baseline"}
+{"time": 1793252850.6858552, "source": "10.0.0.2", "rate_pps": 0.9995322509045421, "baseline_before": 0.9983054315208778, "baseline_after": 0.9986734773359771, "threshold_pps": 2.9949162945626333, "status": "normal"}
+{"time": 1793252850.69216, "source": "10.0.0.1", "rate_pps": 0.9981544286667832, "baseline_before": 0.998475162314251, "baseline_after": 0.9983789422200107, "threshold_pps": 2.9954254869427532, "status": "normal"}
+{"time": 1793252855.6867526, "source": "10.0.0.1", "rate_pps": 1.0010697829678579, "baseline_before": 0.9983789422200107, "baseline_after": 0.9991861944443647, "threshold_pps": 2.995136826660032, "status": "normal"}
+{"time": 1793252855.687214, "source": "10.0.0.2", "rate_pps": 11316.170353063037, "baseline_before": 0.9986734773359771, "baseline_after": 0.9986734773359771, "threshold_pps": 2.9960204320079313, "status": "detected"}
+{"time": 1793252860.6932256, "source": "10.0.0.1", "rate_pps": 0.5994183748002619, "baseline_before": 0.9991861944443647, "baseline_after": 0.8792558485511339, "threshold_pps": 2.9975585833330944, "status": "normal"}
+{"time": 1793252860.6933463, "source": "10.0.0.2", "rate_pps": 1247.0000074291277, "baseline_before": 0.9986734773359771, "baseline_after": 0.9986734773359771, "threshold_pps": 2.9960204320079313, "status": "blocked"}
+{"time": 1793252865.7045083, "source": "10.0.0.2", "rate_pps": 0.0, "baseline_before": 0.9986734773359771, "baseline_after": 0.9986734773359771, "threshold_pps": 2.9960204320079313, "status": "blocked"}
+{"time": 1793252865.7054224, "source": "10.0.0.1", "rate_pps": 0.0, "baseline_before": 0.8792558485511339, "baseline_after": 0.8792558485511339, "threshold_pps": 2.6377675456534018, "status": "normal"}

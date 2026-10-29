@@ -1,0 +1,10 @@
+{"time": 1793252886.0342772, "source": "10.0.0.2", "rate_pps": 0.7996669630405809, "baseline_before": null, "baseline_after": 0.7996669630405809, "threshold_pps": null, "status": "baseline"}
+{"time": 1793252886.0361485, "source": "10.0.0.1", "rate_pps": 0.7992509613802449, "baseline_before": null, "baseline_after": 0.7992509613802449, "threshold_pps": null, "status": "baseline"}
+{"time": 1793252891.0502617, "source": "10.0.0.1", "rate_pps": 0.9972044161779435, "baseline_before": 0.7992509613802449, "baseline_after": 0.8586369978195545, "threshold_pps": 2.3977528841407345, "status": "normal"}
+{"time": 1793252891.0505774, "source": "10.0.0.2", "rate_pps": 0.9965972732945926, "baseline_before": 0.7996669630405809, "baseline_after": 0.8587460561167843, "threshold_pps": 2.399000889121743, "status": "normal"}
+{"time": 1793252896.0445883, "source": "10.0.0.2", "rate_pps": 8820.416520019, "baseline_before": 0.8587460561167843, "baseline_after": 0.8587460561167843, "threshold_pps": 2.5762381683503532, "status": "detected"}
+{"time": 1793252896.0447247, "source": "10.0.0.1", "rate_pps": 1.0010710731859276, "baseline_before": 0.8586369978195545, "baseline_after": 0.9013672204294663, "threshold_pps": 2.5759109934586633, "status": "normal"}
+{"time": 1793252901.053202, "source": "10.0.0.1", "rate_pps": 0.5989958335628238, "baseline_before": 0.9013672204294663, "baseline_after": 0.8106558043694735, "threshold_pps": 2.704101661288399, "status": "normal"}
+{"time": 1793252901.0533352, "source": "10.0.0.2", "rate_pps": 4673.093892043068, "baseline_before": 0.8587460561167843, "baseline_after": 0.8587460561167843, "threshold_pps": 2.5762381683503532, "status": "blocked"}
+{"time": 1793252906.0696685, "source": "10.0.0.1", "rate_pps": 0.0, "baseline_before": 0.8106558043694735, "baseline_after": 0.8106558043694735, "threshold_pps": 2.4319674131084206, "status": "normal"}
+{"time": 1793252906.070172, "source": "10.0.0.2", "rate_pps": 0.0, "baseline_before": 0.8587460561167843, "baseline_after": 0.8587460561167843, "threshold_pps": 2.5762381683503532, "status": "blocked"}
