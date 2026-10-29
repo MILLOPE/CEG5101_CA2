@@ -1,0 +1,41 @@
+loading app /home/ubuntu/sdn-lab/qn2-work/controller/path_controller.py
+loading app ryu.controller.ofp_handler
+loading app ryu.topology.switches
+loading app ryu.controller.ofp_handler
+instantiating app /home/ubuntu/sdn-lab/qn2-work/controller/path_controller.py of PathController
+Q2 samples: /home/ubuntu/sdn-lab/qn2-work/results/data/qn2-1793243117677295437.jsonl
+instantiating app ryu.controller.ofp_handler of OFPHandler
+instantiating app ryu.topology.switches of Switches
+Topology: 0 switches, 0/11 links; ready=False
+Connected: s1
+Connected: s2
+Connected: s3
+Connected: s4
+Connected: s5
+Connected: s6
+Topology: 6 switches, 8/11 links; ready=False
+Topology: 6 switches, 9/11 links; ready=False
+Topology: 6 switches, 11/11 links; ready=False
+Topology: 6 switches, 11/11 links; ready=True
+Route c2:e5:75:36:4d:15 -> 0e:c3:7a:37:3b:26: s3 -> s2 (cost=10)
+Route 12:13:87:86:9c:9e -> 86:a8:3a:83:95:3d: s6 -> s2 -> s1 (cost=19)
+Route 0e:c3:7a:37:3b:26 -> c2:e5:75:36:4d:15: s2 -> s3 (cost=10)
+Route 86:a8:3a:83:95:3d -> 12:13:87:86:9c:9e: s1 -> s2 -> s6 (cost=19)
+Q2 BASELINE: IP=10.0.0.2 rate=1.20 pps
+Q2 BASELINE: IP=10.0.0.1 rate=1.20 pps
+Q2 STATS: IP=10.0.0.2 rate=1.00 pps baseline=1.20 pps
+Q2 STATS: IP=10.0.0.1 rate=1.00 pps baseline=1.20 pps
+Q2 STATS: IP=10.0.0.2 rate=10441.05 pps baseline=1.14 pps
+Q2 ANOMALY: IP=10.0.0.2 rate=10441.05 pps baseline=1.14 pps
+Q2 BLOCKED: IP=10.0.0.2 switches=6
+Q2 STATS: IP=10.0.0.1 rate=0.80 pps baseline=1.14 pps
+Q2 STATS: IP=10.0.0.1 rate=0.60 pps baseline=1.04 pps
+Q2 STATS: IP=10.0.0.2 rate=1235.80 pps baseline=1.14 pps
+Q2 STATS: IP=10.0.0.2 rate=0.00 pps baseline=1.14 pps
+Q2 STATS: IP=10.0.0.1 rate=0.00 pps baseline=0.91 pps
+Route 12:13:87:86:9c:9e -> c2:e5:75:36:4d:15: s6 -> s3 (cost=7)
+Route c2:e5:75:36:4d:15 -> 12:13:87:86:9c:9e: s3 -> s6 (cost=7)
+Q2 STATS: IP=10.0.0.1 rate=0.00 pps baseline=0.91 pps
+Q2 STATS: IP=10.0.0.2 rate=0.00 pps baseline=1.14 pps
+Topology: 6 switches, 8/11 links; ready=False
+Topology: 6 switches, 3/11 links; ready=False

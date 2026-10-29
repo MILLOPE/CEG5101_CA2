@@ -8,7 +8,7 @@ if [[ "$(. /etc/os-release; echo "$VERSION_ID")" != "20.04" ]] || ! python3 -c '
 fi
 sudo apt-get update
 sudo apt-get install -y git build-essential mininet openvswitch-switch iproute2 \
-    python3-pip python3-venv python3-dev python3-tk xterm xvfb
+    python3-pip python3-venv python3-dev python3-tk xterm xvfb hping3
 sudo systemctl enable --now openvswitch-switch
 # Ubuntu 20.04 may package Mininet for Python 2. Install a Python 3 copy.
 mkdir -p .cache

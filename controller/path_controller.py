@@ -1,5 +1,5 @@
 
-"""Part 1: static-cost Dijkstra routing and loop-free flooding.
+"""Qn1–2: static routing, ICMP traffic monitoring and source blocking.
 
 Link costs are the delays in topology/ceg_mesh_topo.py, represented in the
 matching MiniEdit file. 
@@ -108,6 +108,8 @@ class PathController(app_manager.RyuApp):
         self.route_path = ROOT / 'results/logs/routes.jsonl'
         self.state_path.parent.mkdir(parents=True, exist_ok=True)
         self.route_path.parent.mkdir(parents=True, exist_ok=True)
+        self.q2_path = ROOT / 'results/data' / ('qn2-%s.jsonl' % time.time_ns())
+        self.logger.info('Q2 samples: %s', self.q2_path)
         self._write_state()
         self.monitor = hub.spawn(self._discover)
 
@@ -137,6 +139,15 @@ class PathController(app_manager.RyuApp):
             self.datapaths.pop(ev.datapath.id, None)
         else:
             self.datapaths[ev.datapath.id] = ev.datapath
+
+    def _save_q2_sample(self, ip_src, rate, before, after, status):
+        # Keep the values used in the decision so the plots can be reproduced.
+        sample = {'time': time.time(), 'source': ip_src, 'rate_pps': rate,
+                  'baseline_before': before, 'baseline_after': after,
+                  'threshold_pps': None if before is None else self.threshold_multiplier * before,
+                  'status': status}
+        with self.q2_path.open('a') as output:
+            output.write(json.dumps(sample) + '\n')
 
     # Q2: Traffic monitoring
     def _monitor_stats(self):
@@ -203,17 +214,21 @@ class PathController(app_manager.RyuApp):
                     continue
                 self.source_stats[ip_src] = {"rate_pps": rate_pps, "baseline": rate_pps,}
                 self.logger.info("Q2 BASELINE: IP=%s rate=%.2f pps", ip_src, rate_pps,)
+                self._save_q2_sample(ip_src, rate_pps, None, rate_pps, 'baseline')
                 continue
             baseline = entry["baseline"]
             entry["rate_pps"] = rate_pps
             self.logger.info("Q2 STATS: IP=%s rate=%.2f pps baseline=%.2f pps", ip_src, rate_pps, baseline,)
             # Detect using the previous baseline, before updating the EMA.
             anomalous = (baseline > 0 and rate_pps > self.threshold_multiplier * baseline)
+            status = 'blocked' if ip_src in self.blocked_ips else 'normal'
             if anomalous and ip_src not in self.blocked_ips:
+                status = 'detected'
                 self.logger.warning("Q2 ANOMALY: IP=%s rate=%.2f pps baseline=%.2f pps", ip_src, rate_pps, baseline,)
                 self._block_ip(ip_src)
             elif rate_pps > 0 and ip_src not in self.blocked_ips:
                 entry["baseline"] = (self.alpha * rate_pps + (1 - self.alpha) * baseline)
+            self._save_q2_sample(ip_src, rate_pps, baseline, entry['baseline'], status)
 
     # Q2: Source-IP blocking
     def _install_block_rule(self, dp, ip_src):

@@ -1,8 +1,9 @@
-# CEG5101 CA2 — Part 1
+# CEG5101 CA2 — Qn1 and Qn2
 
 The mesh topology from `ceg_mesh_topo.py`, opened in MiniEdit and connected to
 a Ryu controller. The controller uses Dijkstra for unicast routing and a
-minimum spanning tree for broadcast traffic.
+minimum spanning tree for broadcast traffic. Qn2 adds ICMP rate monitoring,
+an EMA baseline and source IP blocking.
 
 ## Requirements
 
@@ -51,7 +52,7 @@ lines in MiniEdit show these controller connections.
 
 ![MiniEdit topology](docs/images/topology.png)
 
-## Check the network
+## Qn1: check the network
 
 Enter these commands at `mininet>`:
 
@@ -99,6 +100,46 @@ The second starts a MiniEdit network, runs `pingall`, then sends 10 h1-to-h6
 pings. It checks that the corresponding counters increase by 10 at s1, s2 and
 s6, and stay unchanged at the other switches. The test stops its network on exit.
 
+## Qn2: detect and block a source
+
+For an existing installation, add the test and plotting dependencies:
+
+```bash
+sudo apt-get install hping3
+.venv/bin/python -m pip install -r requirements.txt
+```
+
+Run the automated test from the project directory:
+
+```bash
+sudo python3 tests/check_qn2.py
+```
+
+It starts a separate test network, builds normal ping baselines, sends a
+10-second ICMP flood and checks the drop rules and legitimate connectivity.
+The result directory is printed when it finishes. See [Qn2 steps](docs/qn2.md)
+for the equivalent MiniEdit commands.
+
+Plot a new run, or use the saved example:
+
+```bash
+.venv/bin/python tools/plot_qn2.py results/qn2/<run>/result.json
+.venv/bin/python tools/plot_qn2.py examples/qn2/result.json
+```
+
+The example below is one measured run. The controller blocked h2 after
+1.03 seconds; s2 then counted 91,848 drops and zero forwarded packets in a
+1.52-second window while the sender was still active. Normal h1-to-h6 pings
+received 3/3 replies during the block.
+
+![Qn2 rate, EMA and detection threshold](docs/images/qn2-rate.png)
+
+[Block counters and connectivity figures](docs/qn2.md#saved-results) ·
+[Raw example data](examples/qn2/)
+
+Figures use Seaborn and are exported as PNG, SVG and PDF. Colors, font,
+size and line width are set in `tools/plot_style.py`.
+
 ## Stop
 
 Type `exit` at `mininet>`, close MiniEdit, then press **Ctrl+C** in the
@@ -137,9 +178,10 @@ to remain stable for one discovery cycle. It learns host locations from
 host-facing ports. Known destinations follow Dijkstra's lowest-cost path;
 broadcast and unknown destinations use the spanning tree to avoid loops.
 
-This version covers normal forwarding. If a configured link disappears,
-forwarding pauses until the complete topology returns. Traffic monitoring,
-source blocking and dynamic costs will be added in later parts.
+Qn2 compares the source ICMP rate with three times its previous EMA. It
+installs source-IP drop rules when the threshold is exceeded. Link costs are
+still static. If a configured link disappears, forwarding pauses until the
+complete topology returns.
 
 ## Files
 
@@ -147,9 +189,11 @@ source blocking and dynamic costs will be added in later parts.
 controller/   Ryu path controller
 topology/     Supplied Python topology and MiniEdit file
 scripts/      Installation, launch and topology export scripts
-tests/        Topology and forwarding checks
+tests/        Topology, forwarding and Qn2 checks
 vendor/       Python 3 MiniEdit and its license
-docs/         Mac VM setup
+tools/        Plotting script and style settings
+docs/         Setup, Qn2 steps and Qn3–4 plan
+examples/     Saved Qn2 measurements
 results/      Local logs and test output, excluded from Git
 ```
 
@@ -161,6 +205,12 @@ sudo python3 tests/check_topology.py
 ```
 
 Logs and test results are saved in `results/`.
+
+## Next: Qn3 and Qn4
+
+[The plan](docs/qn3-qn4.md) follows the assignment: update inter-switch costs
+from load and anomaly status, then test h1-to-h6 routing under the three
+specified attack cases. These changes are not implemented in this version.
 
 ## Common problems
 

@@ -11,3 +11,7 @@ Routes==2.5.1
 six==1.17.0
 tinyrpc==1.1.7
 WebOb==1.8.11
+
+# Figures
+matplotlib==3.7.5
+seaborn==0.13.2
