@@ -8,11 +8,14 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
+from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.ticker import FuncFormatter
 from plot_style import apply_style, COLORS, DPI, FORMATS, SIZES
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('result', type=Path, help='result.json from tests/check_qn2.py')
-parser.add_argument('--output', type=Path, help='directory for PNG and SVG figures')
+parser.add_argument('--output', type=Path, help='directory for the figures')
 args = parser.parse_args()
 report = json.loads(args.result.read_text())
 output = args.output or args.result.parent / 'figures'
@@ -35,25 +38,32 @@ def save(fig, name):
     plt.close(fig)
 
 
-# The threshold uses the previous EMA, before this sample updates it.
-fig, ax = plt.subplots(figsize=SIZES['rate'])
+# Separate the flood rate and detection levels so both have readable axes.
+fig, (rate_ax, ema_ax) = plt.subplots(2, 1, sharex=True, figsize=SIZES['rate'])
 times = [s['time'] - report['flood_start'] for s in samples]
-ax.plot(times, [s['rate_pps'] for s in samples], 'o-', color=blue,
-        linewidth=1.5, markersize=4, label='Observed rate')
-ax.plot(times, [s['baseline_before'] for s in samples], '.-', color=green,
-        label='Previous EMA')
-ax.plot(times, [s['threshold_pps'] for s in samples], '--', color=red,
-        label='Threshold (3 × previous EMA)')
-ax.axvspan(0, report['flood_duration_seconds'], color=blue, alpha=0.06)
-ax.axvline(0, color=COLORS['gray'], linestyle=':', linewidth=1)
-ax.axvline(report['block_observed'] - report['flood_start'], color=red,
-           linestyle=':', linewidth=1, label='Block observed')
-ax.set_yscale('symlog', linthresh=2)
-ax.set_ylim(0, max(s['rate_pps'] for s in samples) * 2)
-ax.set(xlabel='Time from flood start (s)', ylabel='ICMP requests (pps, symlog)',
-       title='h2: observed rate and anomaly threshold')
-ax.grid(axis='y', color='#e5e5e5', linewidth=0.5)
-ax.legend(loc='lower left', bbox_to_anchor=(0, 1.18), ncol=2, borderaxespad=0)
+block_time = report['block_observed'] - report['flood_start']
+rate_ax.plot(times, [s['rate_pps'] / 1000 for s in samples], 'o', color=blue,
+             markersize=4, label='5 s rate samples', clip_on=False)
+rate_ax.set(ylabel='Rate (kpps)', title='h2: observed forwarding rate')
+rate_ax.set_ylim(0, max(s['rate_pps'] for s in samples) / 1000 * 1.3)
+peak = max(samples, key=lambda s: s['rate_pps'])
+rate_ax.annotate('%.2f kpps' % (peak['rate_pps'] / 1000),
+                 (peak['time'] - report['flood_start'], peak['rate_pps'] / 1000),
+                 xytext=(8, 6), textcoords='offset points', fontsize=9)
+ema_ax.plot(times, [s['baseline_before'] for s in samples], 'o-', color=green,
+            markersize=3, label='Previous EMA')
+ema_ax.plot(times, [s['threshold_pps'] for s in samples], 's--', color=red,
+            markersize=3, label='Threshold (3 × EMA)')
+thresholds = [s['threshold_pps'] for s in samples if s['threshold_pps'] is not None]
+ema_ax.set(ylim=(0, max(thresholds) * 1.55), ylabel='Level (pps)',
+           xlabel='Time from flood start (s)', title='EMA and threshold used for detection')
+for ax in (rate_ax, ema_ax):
+    ax.axvspan(0, report['flood_duration_seconds'], color=blue, alpha=0.06)
+    ax.axvline(0, color=COLORS['gray'], linestyle=':', linewidth=1)
+    ax.axvline(block_time, color=red, linestyle=':', linewidth=1,
+               label='Block observed' if ax is rate_ax else None)
+    ax.grid(axis='y', color=COLORS['grid'], linewidth=0.5)
+    ax.legend(loc='upper right')
 save(fig, 'qn2-rate')
 
 fig, ax = plt.subplots(figsize=SIZES['enforcement'])
@@ -64,26 +74,34 @@ ax.set_xlim(0, max(max(values), 1) * 1.25)
 for bar, value in zip(bars, values):
     ax.annotate(format(value, ','), (value, bar.get_y() + bar.get_height()/2),
                 xytext=(7, 0), textcoords='offset points', va='center')
-ax.set(xlabel='Increase in matching packet counters',
+ax.xaxis.set_major_formatter(FuncFormatter(lambda value, pos: '%g' % (value / 1000)))
+ax.set(xlabel='Packet counter increase (thousands)',
        title='s2 after blocking h2 (%.2f s window)' % report['counter_window_seconds'])
 save(fig, 'qn2-enforcement')
 
 fig, ax = plt.subplots(figsize=SIZES['connectivity'])
-checks = [('h2 → h3\nBefore flood', 'h2_normal'),
-          ('h2 → h3\nAfter block', 'h2_after_block'),
-          ('h1 → h6\nDuring block', 'h1_during_block'),
-          ('h3 → h6\nAfter flood', 'h3_healthy')]
-for i, (label, key) in enumerate(checks):
+values = np.full((3, 3), np.nan)
+labels = np.full((3, 3), '', dtype=object)
+checks = [(0, 0, 'h2_normal'), (0, 2, 'h2_after_block'),
+          (1, 0, 'h1_normal'), (1, 1, 'h1_during_block'), (2, 2, 'h3_healthy')]
+for row, column, key in checks:
     match = re.search(r'(\d+) packets transmitted, (\d+) received', report[key])
     if not match:
         parser.error('Cannot read ping summary: ' + key)
     sent, received = map(int, match.groups())
-    ax.bar(i, 100 * received / sent, width=0.5, color=red if i == 1 else green)
-    ax.text(i, 100 * received / sent + 4, '%d/%d' % (received, sent), ha='center')
-ax.set_xticks(range(len(checks)), [label for label, _ in checks])
-ax.set(ylim=(0, 119), ylabel='Ping replies received (%)', title='Connectivity checks')
-ax.set_yticks([0, 25, 50, 75, 100])
-ax.grid(axis='y', color='#e5e5e5', linewidth=0.5)
-ax.set_axisbelow(True)
+    values[row, column] = 100 * received / sent
+    labels[row, column] = '%d/%d' % (received, sent)
+colors = LinearSegmentedColormap.from_list('replies', [red, COLORS['neutral'], green])
+ax.set_facecolor(COLORS['missing'])
+sns.heatmap(values, mask=np.isnan(values), annot=labels, fmt='', cmap=colors,
+            vmin=0, vmax=100, linewidths=3, linecolor='white',
+            xticklabels=['Before flood', 'During block', 'After flood'],
+            yticklabels=['h2 → h3', 'h1 → h6', 'h3 → h6'],
+            cbar_kws={'label': 'Replies (%)', 'ticks': [0, 100], 'shrink': 0.7}, ax=ax)
+for row, column in zip(*np.where(np.isnan(values))):
+    ax.text(column + 0.5, row + 0.5, '—', ha='center', va='center', color=COLORS['gray'])
+ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
+ax.set(title='Connectivity by experiment stage', xlabel='Replies / sent; — = not measured')
+ax.tick_params(axis='both', length=0)
 save(fig, 'qn2-connectivity')
 print('Saved PNG, SVG and PDF figures:', output)

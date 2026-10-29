@@ -13,5 +13,6 @@ tinyrpc==1.1.7
 WebOb==1.8.11
 
 # Figures
+numpy==1.24.4
 matplotlib==3.7.5
 seaborn==0.13.2

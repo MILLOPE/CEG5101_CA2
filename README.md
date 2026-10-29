@@ -109,28 +109,27 @@ sudo apt-get install hping3
 .venv/bin/python -m pip install -r requirements.txt
 ```
 
-Run the automated test from the project directory:
+Run the test and draw the results:
 
 ```bash
-sudo python3 tests/check_qn2.py
+bash scripts/run_qn2.sh
 ```
 
-It starts a separate test network, builds normal ping baselines, sends a
-10-second ICMP flood and checks the drop rules and legitimate connectivity.
-The result directory is printed when it finishes. See [Qn2 steps](docs/qn2.md)
-for the equivalent MiniEdit commands.
+It uses a separate test network and stops it when finished. Data is saved in
+`results/qn2/`, and figures in `figures/`. See [Qn2 steps](docs/qn2.md) for the
+manual MiniEdit test.
 
-Plot a new run, or use the saved example:
+To redraw the saved example:
 
 ```bash
-.venv/bin/python tools/plot_qn2.py results/qn2/<run>/result.json
-.venv/bin/python tools/plot_qn2.py examples/qn2/result.json
+bash scripts/run_qn2.sh plot
 ```
 
-The example below is one measured run. The controller blocked h2 after
-1.03 seconds; s2 then counted 91,848 drops and zero forwarded packets in a
+In the saved run, the block was observed 1.03 seconds after flood launch.
+Then s2 counted 91,848 drops and zero forwarded packets in a
 1.52-second window while the sender was still active. Normal h1-to-h6 pings
-received 3/3 replies during the block.
+received 3/3 replies during the block. The observed delay depends on the
+5-second polling cycle.
 
 ![Qn2 rate, EMA and detection threshold](docs/images/qn2-rate.png)
 
