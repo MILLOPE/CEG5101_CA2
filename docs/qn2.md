@@ -54,7 +54,8 @@ for another manual test, since Qn2's block rules have no automatic expiry.
 
 The example is one run on Ubuntu 20.04 (aarch64). Normal h2 pings received
 20/20 replies; after blocking, h2 received 0/3. During the block, h1 received
-3/3, and h3 received 3/3 in the later connectivity check.
+3/3, and h3 received 3/3 in the later connectivity check. The expected change
+is that blocked h2 loses connectivity while h1 stays reachable.
 
 The block was observed 1.03 seconds after flood launch in this run. This time
 depends on where the flood starts within the 5-second polling cycle. While the
@@ -65,8 +66,10 @@ The upper panel shows interval-average rates; the lower panel shows EMA and
 threshold in packets/s. Rates after blocking come
 from forwarding counters, so they do not measure the sender's offered load.
 The separate counter check is the evidence that packets were being dropped.
-The shaded band marks the 10-second flood. Gray cells in the connectivity
-matrix are checks that were not measured.
+The shaded band marks the 10-second flood. The connectivity plots compare
+the attacking source and the legitimate host pair separately.
+
+![Qn2 test sequence](images/qn2-overview.png)
 
 ![ICMP rate and detection threshold](images/qn2-rate.png)
 

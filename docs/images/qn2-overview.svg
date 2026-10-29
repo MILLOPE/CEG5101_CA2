@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="640.8pt" height="216pt" viewBox="0 0 640.8 216" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-29T12:43:31.590636</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.7.5, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 216 
+L 640.8 216 
+L 640.8 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="line2d_1">
+    <path d="M 213.912 166.153846 
+L 213.912 18.830769 
+" clip-path="url(#p83f86fdc3c)" style="fill: none; stroke: #e5e5e5; stroke-width: 0.7; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_2">
+    <path d="M 426.888 166.153846 
+L 426.888 18.830769 
+" clip-path="url(#p83f86fdc3c)" style="fill: none; stroke: #e5e5e5; stroke-width: 0.7; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_3">
+    <path d="M 19.728 177.784615 
+L 621.072 177.784615 
+" clip-path="url(#p83f86fdc3c)" style="fill: none; stroke: #e5e5e5; stroke-width: 0.7; stroke-linecap: round"/>
+   </g>
+   <g id="text_1">
+    <text style="fill: #262626; font: 11px 'DejaVu Serif'; text-anchor: middle" x="107.424" y="24.646154" transform="rotate(-0 107.424 24.646154)">1. Normal traffic</text>
+   </g>
+   <g id="text_2">
+    <text style="fill: #777777; font: 9px 'DejaVu Serif'; text-anchor: middle" x="107.424" y="51.784615" transform="rotate(-0 107.424 51.784615)">h2 → h3 · before flood</text>
+   </g>
+   <g id="text_3">
+    <text style="fill: #262626; font: 21px 'DejaVu Serif'; text-anchor: middle" x="107.424" y="96.369231" transform="rotate(-0 107.424 96.369231)">20 / 20</text>
+   </g>
+   <g id="text_4">
+    <text style="fill: #262626; font: 10px 'DejaVu Serif'; text-anchor: middle" x="107.424" y="125.446154" transform="rotate(-0 107.424 125.446154)">ping replies</text>
+   </g>
+   <g id="text_5">
+    <text style="fill: #262626; font: 10px 'DejaVu Serif'; text-anchor: middle" x="107.424" y="158.4" transform="rotate(-0 107.424 158.4)">EMA 1.138 pps</text>
+   </g>
+   <g id="text_6">
+    <text style="fill: #262626; font: 11px 'DejaVu Serif'; text-anchor: middle" x="320.4" y="24.646154" transform="rotate(-0 320.4 24.646154)">2. Anomaly detected</text>
+   </g>
+   <g id="text_7">
+    <text style="fill: #777777; font: 9px 'DejaVu Serif'; text-anchor: middle" x="320.4" y="51.784615" transform="rotate(-0 320.4 51.784615)">h2 · 1.03 s after flood launch</text>
+   </g>
+   <g id="text_8">
+    <text style="fill: #262626; font: 21px 'DejaVu Serif'; text-anchor: middle" x="320.4" y="96.369231" transform="rotate(-0 320.4 96.369231)">10,441 pps</text>
+   </g>
+   <g id="text_9">
+    <text style="fill: #262626; font: 10px 'DejaVu Serif'; text-anchor: middle" x="320.4" y="125.446154" transform="rotate(-0 320.4 125.446154)">measured rate</text>
+   </g>
+   <g id="text_10">
+    <text style="fill: #262626; font: 10px 'DejaVu Serif'; text-anchor: middle" x="320.4" y="158.4" transform="rotate(-0 320.4 158.4)">threshold 3.415 pps</text>
+   </g>
+   <g id="text_11">
+    <text style="fill: #262626; font: 11px 'DejaVu Serif'; text-anchor: middle" x="533.376" y="24.646154" transform="rotate(-0 533.376 24.646154)">3. Source blocked</text>
+   </g>
+   <g id="text_12">
+    <text style="fill: #777777; font: 9px 'DejaVu Serif'; text-anchor: middle" x="533.376" y="51.784615" transform="rotate(-0 533.376 51.784615)">s2 · sender still active</text>
+   </g>
+   <g id="text_13">
+    <text style="fill: #262626; font: 21px 'DejaVu Serif'; text-anchor: middle" x="533.376" y="96.369231" transform="rotate(-0 533.376 96.369231)">91,848</text>
+   </g>
+   <g id="text_14">
+    <text style="fill: #262626; font: 10px 'DejaVu Serif'; text-anchor: middle" x="533.376" y="125.446154" transform="rotate(-0 533.376 125.446154)">packets dropped</text>
+   </g>
+   <g id="text_15">
+    <text style="fill: #262626; font: 10px 'DejaVu Serif'; text-anchor: middle" x="533.376" y="158.4" transform="rotate(-0 533.376 158.4)">0 forwarded · 1.52 s check</text>
+   </g>
+   <g id="text_16">
+    <text style="fill: #009e73; font: 10px 'DejaVu Serif'; text-anchor: middle" x="320.4" y="199.107692" transform="rotate(-0 320.4 199.107692)">Legitimate h1 → h6: 20/20 replies before flood; 3/3 during block</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p83f86fdc3c">
+   <rect x="7.2" y="7.2" width="626.4" height="201.6"/>
+  </clipPath>
+ </defs>
+</svg>

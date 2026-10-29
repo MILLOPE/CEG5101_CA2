@@ -131,9 +131,9 @@ Then s2 counted 91,848 drops and zero forwarded packets in a
 received 3/3 replies during the block. The observed delay depends on the
 5-second polling cycle.
 
-![Qn2 rate, EMA and detection threshold](docs/images/qn2-rate.png)
+![Qn2: normal traffic, detection and source blocking](docs/images/qn2-overview.png)
 
-[Block counters and connectivity figures](docs/qn2.md#saved-results) ·
+[Rate, block counters and connectivity figures](docs/qn2.md#saved-results) ·
 [Raw example data](examples/qn2/)
 
 Figures use Seaborn and are exported as PNG, SVG and PDF. Colors, font,

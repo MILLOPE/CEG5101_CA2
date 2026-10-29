@@ -4,8 +4,9 @@ FONT = 'DejaVu Serif'
 FONT_SIZE = 10
 LINE_WIDTH = 1.5
 COLORS = {'rate': '#0072B2', 'ema': '#009E73', 'block': '#D55E00', 'gray': '#777777',
-          'grid': '#e5e5e5', 'missing': '#ededed', 'neutral': '#fafafa'}
-SIZES = {'rate': (7.0, 4.6), 'enforcement': (6.4, 2.5), 'connectivity': (7.0, 3.2)}
+          'grid': '#e5e5e5'}
+SIZES = {'rate': (7.0, 4.6), 'enforcement': (6.4, 2.5), 'connectivity': (8.0, 3.2),
+         'overview': (9.0, 3.1)}
 FORMATS = ('png', 'svg', 'pdf')
 
 

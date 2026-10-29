@@ -8,8 +8,6 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
-import numpy as np
-from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import FuncFormatter
 from plot_style import apply_style, COLORS, DPI, FORMATS, SIZES
 
@@ -79,29 +77,63 @@ ax.set(xlabel='Packet counter increase (thousands)',
        title='s2 after blocking h2 (%.2f s window)' % report['counter_window_seconds'])
 save(fig, 'qn2-enforcement')
 
-fig, ax = plt.subplots(figsize=SIZES['connectivity'])
-values = np.full((3, 3), np.nan)
-labels = np.full((3, 3), '', dtype=object)
-checks = [(0, 0, 'h2_normal'), (0, 2, 'h2_after_block'),
-          (1, 0, 'h1_normal'), (1, 1, 'h1_during_block'), (2, 2, 'h3_healthy')]
-for row, column, key in checks:
+def ping_count(key):
     match = re.search(r'(\d+) packets transmitted, (\d+) received', report[key])
-    if not match:
-        parser.error('Cannot read ping summary: ' + key)
     sent, received = map(int, match.groups())
-    values[row, column] = 100 * received / sent
-    labels[row, column] = '%d/%d' % (received, sent)
-colors = LinearSegmentedColormap.from_list('replies', [red, COLORS['neutral'], green])
-ax.set_facecolor(COLORS['missing'])
-sns.heatmap(values, mask=np.isnan(values), annot=labels, fmt='', cmap=colors,
-            vmin=0, vmax=100, linewidths=3, linecolor='white',
-            xticklabels=['Before flood', 'During block', 'After flood'],
-            yticklabels=['h2 → h3', 'h1 → h6', 'h3 → h6'],
-            cbar_kws={'label': 'Replies (%)', 'ticks': [0, 100], 'shrink': 0.7}, ax=ax)
-for row, column in zip(*np.where(np.isnan(values))):
-    ax.text(column + 0.5, row + 0.5, '—', ha='center', va='center', color=COLORS['gray'])
-ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
-ax.set(title='Connectivity by experiment stage', xlabel='Replies / sent; — = not measured')
-ax.tick_params(axis='both', length=0)
+    return sent, received
+
+
+# Compare the same host pair before and after the event, with counts shown.
+fig, axes = plt.subplots(1, 2, sharey=True, figsize=SIZES['connectivity'])
+comparisons = [
+    ('Attacking source: h2 → h3', ['Before flood', 'After block'],
+     ['h2_normal', 'h2_after_block'], [blue, red]),
+    ('Legitimate traffic: h1 → h6', ['Before flood', 'During block'],
+     ['h1_normal', 'h1_during_block'], [green, green]),
+]
+for ax, (title, stages, keys, colors) in zip(axes, comparisons):
+    for i, (key, color) in enumerate(zip(keys, colors)):
+        sent, received = ping_count(key)
+        percent = 100 * received / sent
+        ax.bar(i, percent, width=0.48, color=color)
+        ax.text(i, percent + 4, '%d/%d replies' % (received, sent), ha='center', fontsize=9)
+    ax.set(title=title, ylim=(0, 123), xticks=[0, 1], xticklabels=stages)
+    ax.set_yticks([0, 50, 100])
+    ax.grid(axis='y', color=COLORS['grid'], linewidth=0.5)
+    ax.set_axisbelow(True)
+axes[0].set_ylabel('Ping replies received (%)')
 save(fig, 'qn2-connectivity')
+
+# A short reading order for the README, using the same measured values.
+fig, ax = plt.subplots(figsize=SIZES['overview'])
+ax.axis('off')
+detected = next(s for s in samples if s['status'] == 'detected')
+sent, received = ping_count('h2_normal')
+columns = [
+    ('1. Normal traffic', 'h2 → h3 · before flood', '%d / %d' % (received, sent),
+     'ping replies', 'EMA %.3f pps' % detected['baseline_before']),
+    ('2. Anomaly detected', 'h2 · %.2f s after flood launch' % block_time,
+     '%s pps' % format(detected['rate_pps'], ',.0f'), 'measured rate',
+     'threshold %.3f pps' % detected['threshold_pps']),
+    ('3. Source blocked', 's2 · sender still active',
+     format(report['s2_counter_delta']['drop'], ','), 'packets dropped',
+     '%d forwarded · %.2f s check' % (report['s2_counter_delta']['forward'],
+                                     report['counter_window_seconds'])),
+]
+for x, (title, label, value, unit, detail) in zip([0.16, 0.50, 0.84], columns):
+    ax.text(x, 0.91, title, ha='center', fontsize=11)
+    ax.text(x, 0.77, label, ha='center', color=COLORS['gray'], fontsize=9)
+    ax.text(x, 0.54, value, ha='center', fontsize=21)
+    ax.text(x, 0.39, unit, ha='center', fontsize=10)
+    ax.text(x, 0.22, detail, ha='center', fontsize=10)
+for x in [0.33, 0.67]:
+    ax.plot([x, x], [0.18, 0.94], color=COLORS['grid'], linewidth=0.7)
+ax.plot([0.02, 0.98], [0.12, 0.12], color=COLORS['grid'], linewidth=0.7)
+before_sent, before_received = ping_count('h1_normal')
+during_sent, during_received = ping_count('h1_during_block')
+ax.text(0.5, 0.01, 'Legitimate h1 → h6: %d/%d replies before flood; %d/%d during block' %
+        (before_received, before_sent, during_received, during_sent),
+        ha='center', fontsize=10, color=green)
+ax.set(xlim=(0, 1), ylim=(-0.04, 1))
+save(fig, 'qn2-overview')
 print('Saved PNG, SVG and PDF figures:', output)
