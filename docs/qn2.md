@@ -36,19 +36,10 @@ bash scripts/run_qn2.sh plot
 Edit `tools/plot_style.py` for colors, font, size and line width. Each plot is
 exported as PNG, SVG and PDF.
 
-For a manual MiniEdit test, start the controller and topology from the README,
-then enter at `mininet>`:
-
-```text
-h2 ping -c 20 10.0.0.3
-h2 timeout --signal=INT 10 hping3 --icmp --flood 10.0.0.3
-h2 ping -c 3 -W 1 10.0.0.3
-h1 ping -c 3 10.0.0.6
-```
-
-Wait for `Q2 BASELINE` before starting the flood. Look for `Q2 ANOMALY` and
-`Q2 BLOCKED` in the controller terminal. Restart both the network and controller
-for another manual test, since Qn2's block rules have no automatic expiry.
+The [README](../README.md#qn2-anomaly-detection-and-blocking) gives the manual
+MiniEdit commands. Stop the foreground flood with
+Ctrl+C after about 10 seconds. Start a fresh network and controller for each
+manual test.
 
 ## Saved results
 
@@ -78,5 +69,4 @@ the attacking source and the legitimate host pair separately.
 ![Ping replies before and after blocking](images/qn2-connectivity.png)
 
 The measurements and controller log are in `examples/qn2/`. These checks
-support ICMP source blocking and connectivity in this run. Qn4 will measure
-routing changes, loss and throughput over time.
+support ICMP source blocking and connectivity in this run.
