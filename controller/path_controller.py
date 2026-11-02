@@ -11,6 +11,8 @@ source IP is blocked across the switches.
 
 28 October 2026: Added ICMP anomaly detection and source IP blocking.
 30 October 2026: Added Dynamic Link Cost Update (Rerouting not implemented)
+2 November 2026: Keep existing paths on load updates; reroute on anomaly changes.
+Only apply anomaly penalties to active traffic paths.
 """
 
 import heapq
@@ -83,8 +85,6 @@ class PathController(app_manager.RyuApp):
         self.costs, self.access_ports = {}, {}
         self.expected_ports = {}
 
-        self.last_dynamic_paths = {}
-
         # Link bandwidths, using the topology configuration
         self.link_bandwidths = {}
 
@@ -105,6 +105,7 @@ class PathController(app_manager.RyuApp):
                 sw, port = (a, opts['port1']) if a.startswith('s') else (b, opts['port2'])
                 self.access_ports.setdefault(int(sw[1:]), set()).add(port)
         self.datapaths, self.hosts = {}, {}
+        self.flow_paths = {}
 
         # Q2: traffic monitoring and anomaly detection
         self.alpha = 0.3
@@ -198,13 +199,14 @@ class PathController(app_manager.RyuApp):
                 dynamic_graph[u][v] = self.dynamic_costs.get((u, v), base_cost)
         return dynamic_graph
 
-    def _update_dynamic_costs(self, log_samples=True):
-        """Update dynamic link costs and recalculate shortest paths."""
+    def _update_dynamic_costs(self, log_samples=True, reroute=False):
+        """Update costs; reroute existing flows when anomaly status changes."""
         now = time.time()
         for link_key, expiry in list(self.anomaly_expiry.items()):
             if now >= expiry:
                 self.anomaly_expiry.pop(link_key, None)
                 self.anomaly_links.discard(link_key)
+                reroute = True
                 self.logger.info("Q3: Anomaly penalty expired on s%s-s%s", *link_key)
         samples = []
         for u, neighbors in self.graph.items():
@@ -238,17 +240,11 @@ class PathController(app_manager.RyuApp):
             with self.q3_path.open('a') as output:
                 for sample in samples:
                     output.write(json.dumps(sample) + '\n')
-        dynamic_graph = self._dynamic_graph()
-        current_paths = {}
-        for source in dynamic_graph:
-            for destination in dynamic_graph:
-                if source < destination:
-                    path, cost = shortest_path(dynamic_graph, source, destination)
-                    current_paths[(source, destination)] = tuple(path)
-        if self.last_dynamic_paths and current_paths != self.last_dynamic_paths:
+        # Load changes affect new flows. Moving existing flows every poll would
+        # empty the old path and make it attractive again at the next poll.
+        if reroute:
             self._clear_routes()
-            self.logger.info("Q3: Dynamic costs changed shortest paths; forwarding rules cleared")
-        self.last_dynamic_paths = current_paths
+            self.logger.info("Q3: Anomaly status changed; forwarding rules cleared")
 
     def _mark_anomaly_path(self, ip_src, destinations):
         """Apply a temporary cost penalty to links affected by an anomaly."""
@@ -261,7 +257,10 @@ class PathController(app_manager.RyuApp):
             destination_switch = self.ip_to_switch.get(ip_dst)
             if destination_switch is None:
                 continue
-            path, cost = shortest_path(dynamic_graph, source_switch, destination_switch)
+            # Penalize the path carrying the flow, not a newly cheaper path.
+            path = self.flow_paths.get((ip_src, ip_dst))
+            if path is None:
+                path, cost = shortest_path(dynamic_graph, source_switch, destination_switch)
             for u, v in zip(path, path[1:]):
                 marked_links.add(tuple(sorted((u, v))))
         expiry = time.time() + Q3_ANOMALY_HOLD_SECONDS
@@ -270,7 +269,7 @@ class PathController(app_manager.RyuApp):
             self.anomaly_expiry[link_key] = expiry
         if marked_links:
             self.logger.warning("Q3: Anomaly penalty applied to links %s for %.0f seconds", sorted(marked_links), Q3_ANOMALY_HOLD_SECONDS)
-            self._update_dynamic_costs(log_samples=False)
+            self._update_dynamic_costs(log_samples=False, reroute=True)
 
     # Q3: Process OpenFlow port statistics
     @set_ev_cls(ofp_event.EventOFPPortStatsReply, MAIN_DISPATCHER)
@@ -368,15 +367,14 @@ class PathController(app_manager.RyuApp):
             previous = previous_counts.get(flow_key)
             previous_counts[flow_key] = total
 
-            ip_dst = stat.match.get("ipv4_dst")
-            if ip_dst:
-                source_destinations.setdefault(ip_src, set()).add(ip_dst)
-
             # A new flow's existing counter is not a measured interval.
             if previous is None or elapsed is None:
                 continue
             delta = max(0, total - previous)
             source_deltas[ip_src] = source_deltas.get(ip_src, 0) + delta
+            ip_dst = stat.match.get("ipv4_dst")
+            if delta > 0 and ip_dst:
+                source_destinations.setdefault(ip_src, set()).add(ip_dst)
 
         for ip_src, delta in source_deltas.items():
             rate_pps = delta / elapsed
@@ -435,6 +433,7 @@ class PathController(app_manager.RyuApp):
                 cookie=COOKIE, cookie_mask=0xffffffffffffffff,
                 out_port=ofp.OFPP_ANY, out_group=ofp.OFPG_ANY, match=p.OFPMatch()))
         self.logged_routes.clear()
+        self.flow_paths.clear()
 
     def _discover(self):
         """LLDP discovery is supplied by ryu-manager --observe-links."""
@@ -540,6 +539,8 @@ class PathController(app_manager.RyuApp):
             self._add_flow( dp, 100, p.OFPMatch(**fields), [p.OFPActionOutput(port)],)
 
             if access:
+                if fields.get("icmpv4_type") == 8:
+                    self.flow_paths[ip_pkt.src, ip_pkt.dst] = path
                 key = (eth.src, eth.dst, tuple(path))
                 if key not in self.logged_routes:
                     self.logged_routes.add(key)

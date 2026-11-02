@@ -1,7 +1,7 @@
-# CEG5101 CA2 — Qn1 and Qn2
+# CEG5101 CA2 — Qn1–3
 
 MiniEdit mesh topology with a Ryu controller for shortest-path routing,
-ICMP traffic monitoring and source IP blocking.
+ICMP traffic monitoring, source IP blocking and dynamic link costs.
 
 ## Setup
 
@@ -82,6 +82,47 @@ h2 should receive no replies after blocking; h1 should still receive replies.
 The flow table should contain a priority-5000 rule for `nw_src=10.0.0.2`
 with `actions=drop`.
 
+## Qn3: dynamic link costs
+
+Qn3 runs in the same controller. Each inter-switch link uses:
+
+```text
+cost = base_cost + 30 × utilisation + 20 × anomaly
+```
+
+The base cost is the topology delay. Utilisation is the larger of the two
+directional TX rates divided by 40 Mbps, capped at 1. The anomaly penalty
+lasts 30 seconds; the source IP stays blocked.
+
+On a fresh network, run this at `mininet>` to test the load term:
+
+```text
+h3 iperf -s -p 5001 &
+h1 iperf -c 10.0.0.3 -p 5001 -t 120 -i 5
+```
+
+Open the newest `results/data/qn3-*.jsonl` file. Each row records a link's
+`utilisation`, `anomaly`, `dynamic_cost` and `normalized_cost`.
+Use the Qn2 ping/flood test to check the anomaly term.
+
+Load updates affect new flows. Existing flows keep their paths until an
+anomaly is detected, a penalty expires, or the topology changes. This avoids
+switching back and forth every statistics interval. Only flows with new
+packets contribute destinations to the anomaly-path check; idle rules left
+by `pingall` are excluded.
+
+Five anomaly runs verified source blocking on all six switches, no further
+forwarding from the blocked source, and penalty recovery. The continuous
+h1→h6 ping received 70/70 replies in four runs and 69/70 in one.
+Three TCP tests (120, 60 and 60 seconds) had no periodic route resets.
+
+![Qn2 and Qn3 results](docs/images/qn3-results.png)
+
+Saved measurements: [anomaly runs](examples/qn3/anomaly_runs.csv) and
+[TCP runs](examples/qn3/load_runs.csv). The TCP repeats also included a
+5-second h4→h3 flow, which selected s4–s5–s3 under load.
+The h5→h6 tests used s5–s3–s6; they do not verify the assignment's s5–s6 case.
+
 ## Optional: automated test and plots
 
 ```bash
@@ -124,9 +165,9 @@ sudo mn -c
 
 The controller uses Dijkstra for known destinations and an MST for flooding.
 Qn2 samples ICMP Echo Requests every 5 seconds, uses EMA α=0.3, and detects
-rates above three times the previous baseline. Link costs are static and
-currently come from topology delays. Forwarding pauses if a configured link
-is missing.
+rates above three times the previous baseline. Qn3 updates link costs from
+port statistics every 5 seconds. Forwarding pauses if a configured link is
+missing.
 
 The topology and reference approach come from the CEG5101 CA2 materials.
 MiniEdit's original credits and license are in `vendor/`.
