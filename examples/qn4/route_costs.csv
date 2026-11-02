@@ -1,0 +1,4 @@
+case,observed_s,sample_age_s,old_path,old_cost,new_path,new_cost
+h2-h3,4.1074,1.0842,s1-s2-s6,73.0141,s1-s5-s6,20.0005
+h2-h6,5.206,2.2168,s1-s2-s6,89.8602,s1-s5-s6,20.0005
+h5-h6,2.0777,1.2977,s1-s2-s6,73.2136,s1-s5-s3-s6,30.0009

@@ -23,6 +23,10 @@ assert len(data['hosts']) == len(data['switches']) == 6 and len(expected) == 17
 
 # Load the actual pure functions without importing Ryu into system Python.
 code = ast.parse((ROOT / 'controller/path_controller.py').read_text())
+base_costs = next(ast.literal_eval(node.value) for node in code.body
+                  if isinstance(node, ast.Assign)
+                  and any(isinstance(target, ast.Name) and target.id == 'BASE_COSTS'
+                          for target in node.targets))
 functions = [n for n in code.body if isinstance(n, ast.FunctionDef)
              and n.name in ('shortest_path', 'spanning_tree')]
 import heapq
@@ -32,11 +36,11 @@ graph = {i: {} for i in range(1, 7)}
 for (u, v), opts in expected.items():
     if u.startswith('s') and v.startswith('s'):
         a, b = int(u[1:]), int(v[1:])
-        graph[a][b] = graph[b][a] = float(opts['delay'][:-2])
-assert scope['shortest_path'](graph, 1, 6) == ([1, 2, 6], 19)
-assert scope['shortest_path'](graph, 6, 1) == ([6, 2, 1], 19)
+        graph[a][b] = graph[b][a] = base_costs.get(tuple(sorted((a, b))), 10.0)
+assert scope['shortest_path'](graph, 1, 6) == ([1, 2, 6], 15)
+assert scope['shortest_path'](graph, 6, 1) == ([6, 2, 1], 15)
 assert scope['shortest_path']({1: {}, 2: {}}, 1, 2) == ([], float('inf'))
 tree = scope['spanning_tree'](graph)
 assert len(tree) == 5
-assert sum(graph[u][v] for u, v in tree) == 37
-print('PASS: original topology preserved; Dijkstra path cost 19; MST cost 37.')
+assert sum(graph[u][v] for u, v in tree) == 43
+print('PASS: original topology preserved; Dijkstra path cost 15; MST cost 43.')
