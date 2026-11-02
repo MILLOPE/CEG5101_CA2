@@ -136,38 +136,63 @@ def plot(folder, report, link, metrics):
     apply_style(plt)
     start = report['attack_start']
     end = report['penalty_end']-start
-    fig, axes = plt.subplots(3, 1, figsize=(8.2, 7.2), sharex=True)
-    fig.subplots_adjust(left=.12, right=.97, top=.86, bottom=.1, hspace=.22)
+    blocked = report['block_observed_seconds']
+    restored = next((row['time']-start for row in report['route_cost_samples']
+                     if row['time'] >= report['penalty_end'] and row['path'] == report['path_before']), None)
+    fig, axes = plt.subplots(3, 1, figsize=(8.2, 8.0), sharex=True)
+    fig.subplots_adjust(left=.12, right=.97, top=.77, bottom=.1, hspace=.48)
     source, destination = report['case'].split('-')
     fig.suptitle('%s → %s ICMP flood · h1 → h6 TCP' % (source,destination), x=.12, y=.97, ha='left', fontsize=15)
     before = '–'.join('s%d'%i for i in report['path_before'])
     alternatives = [path for path in report['phases']['during']['paths'] if path != report['path_before']]
     during = ' / '.join('–'.join('s%d'%i for i in path) for path in alternatives) or before
     after = ' / '.join('–'.join('s%d'%i for i in path) for path in report['phases']['after']['paths'])
-    fig.text(.12, .91, 'TCP: %s  →  %s  →  %s' % (before,during,after), fontsize=10)
-    fig.text(.12, .875, 'Cost: s%s–s%s   |   Flood: shaded   |   Detected: dotted   |   Penalty ends: dashed'
-             % (source[1:],destination[1:]), fontsize=8)
+    labels = ['Before', 'Rerouted', 'Recovered' if restored is not None else 'After']
+    for x, label, path in zip([.12, .44, .76], labels, [before, during, after]):
+        fig.text(x, .915, label, fontsize=10, weight='bold')
+        fig.text(x, .885, path, fontsize=10)
+    recovery = 'Route restored: %.1f s' % restored if restored is not None else 'Route not restored'
+    fig.text(.12, .835, 'Flood command: 0–10 s    |    Source blocked: %.1f s    |    %s'
+             % (blocked, recovery), fontsize=9)
     fig.text(.12, .025, 'ICMP probes: 1/s; loss and throughput: 5 s bins. TCP and ICMP may use different paths.', fontsize=8)
     for ax in axes:
         ax.axvspan(0, report['flood_seconds'], color=COLORS['block'], alpha=.1)
-        ax.axvline(report['detection_seconds'], color=COLORS['block'], linestyle=':', linewidth=1)
-        ax.axvline(end, color=COLORS['gray'], linestyle='--', linewidth=1)
+        ax.axvline(blocked, color=COLORS['block'], linestyle=':', linewidth=1)
+        if restored is not None:
+            ax.axvline(restored, color=COLORS['gray'], linestyle='--', linewidth=1)
         ax.grid(axis='y', color=COLORS['grid'], linewidth=.6)
     axes[0].plot([row['time']-start for row in link], [row['normalized_cost'] for row in link],
                  '-o', color=COLORS['rate'], markersize=3)
     axes[0].axhline(1, color=COLORS['gray'], linestyle=':', linewidth=.8)
     axes[0].set_ylabel('Link cost / base cost')
+    axes[0].set_title('A. Cost of s%s–s%s' % (source[1:], destination[1:]), loc='left', fontsize=11)
     axes[0].set_ylim(bottom=0)
+    returned = [row for row in link if row['time'] >= report['penalty_end']+5 and row['load_penalty'] > 1]
+    if returned:
+        row = returned[0]
+        axes[0].annotate('TCP traffic returns', xy=(row['time']-start, row['normalized_cost']),
+                         xytext=(end+5, max(1.5, row['normalized_cost']*.55)), fontsize=9,
+                         arrowprops={'arrowstyle': '->', 'color': COLORS['gray'], 'lw': .8})
     points = [row for row in metrics if row['loss_pct'] is not None]
     axes[1].bar([row['time_s'] for row in points], [row['loss_pct'] for row in points],
                 width=4.1, color=COLORS['block'])
     axes[1].set_ylabel('ICMP loss (%)')
+    axes[1].set_title('B. Ping probes: %d/%d replies over the whole run'
+                      % (report['ping']['received'], report['ping']['sent']), loc='left', fontsize=11)
     axes[1].set_ylim(0, max(25, max(row['loss_pct'] for row in points)*1.2))
     if all(row['loss_pct'] == 0 for row in points):
         axes[1].text(.02, .7, '0% observed loss', transform=axes[1].transAxes, fontsize=9)
+    else:
+        worst = max(points, key=lambda row: row['loss_pct'])
+        axes[1].annotate('%d of %d probes lost in this window'
+                         % (worst['ping_sent']-worst['ping_received'], worst['ping_sent']),
+                         xy=(worst['time_s'], worst['loss_pct']),
+                         xytext=(worst['time_s']+10, worst['loss_pct']+.12*axes[1].get_ylim()[1]), fontsize=9,
+                         arrowprops={'arrowstyle': '->', 'color': COLORS['gray'], 'lw': .8})
     axes[2].plot([row['time_s'] for row in metrics], [row['receiver_mbps'] for row in metrics],
                  '-o', color=COLORS['ema'], markersize=3)
     axes[2].set_ylabel('TCP rate at h6 (Mbps)')
+    axes[2].set_title('C. TCP throughput received by h6', loc='left', fontsize=11)
     axes[2].set_ylim(bottom=0)
     lowest = min(metrics, key=lambda row: row['receiver_mbps'])
     if lowest['receiver_mbps'] < .01:
@@ -188,5 +213,24 @@ if __name__ == '__main__':
     args = parser.parse_args()
     report, link, metrics = summarize(args.folder)
     plot(args.folder, report, link, metrics)
-    print('PASS' if report['passed'] else 'FAIL', report['case'], report['checks'])
+    tcp_paths = [report['path_before']]
+    if report['route_comparison'] is not None:
+        tcp_paths.append(report['route_comparison']['new_path'])
+    tcp_paths.append(report['path_after'])
+    lines = [('PASS' if report['passed'] else 'FAIL') + ' ' + report['case'],
+             'Source 10.0.0.%s: drop rules on %d/6 switches'
+             % (report['case'].split('-')[0][1:], len(report['drop_rule_switches'])),
+             'Flood check (%.2f s): drop +%d, forward +%d'
+             % (report['counter_window_s'], report['counter_delta']['drop'], report['counter_delta']['forward']),
+             'TCP paths: ' + ' / '.join('-'.join('s%d'%i for i in path) for path in tcp_paths),
+             'ICMP probes: %d/%d replies, %.1f%% loss'
+             % (report['ping']['received'], report['ping']['sent'], report['ping']['loss_pct']),
+             'Receiver Mbps (before / during / after): '
+             + ' / '.join('%.2f'%report['phases'][phase]['receiver_mbps'] for phase in ['before','during','after']),
+             'Lowest 5-second receiver rate: %.4f Mbps' % report['minimum_receiver_mbps']]
+    if report['route_comparison'] is not None:
+        lines.append('Sampled path cost: %.2f -> %.2f' % (report['route_comparison']['old_cost'], report['route_comparison']['new_cost']))
+    text = '\n'.join(lines) + '\n'
+    (args.folder / 'analysis-output.txt').write_text(text)
+    print(text, end='')
     raise SystemExit(0 if report['passed'] else 1)

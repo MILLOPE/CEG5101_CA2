@@ -97,7 +97,8 @@ cost = base_cost + 30 × utilisation + 20 × anomaly
 Base costs follow the supplied `resilient_controller.py`; unspecified links
 have cost 10. Routing costs are separate from the physical TCLink delays.
 Utilisation is the larger directional TX rate divided by 40 Mbps, capped
-at 1. The anomaly penalty lasts 30 seconds; the source IP stays blocked.
+at 1. Anomaly penalties have a 30-second hold and are cleared at the next
+statistics update; the source IP stays blocked.
 
 On a fresh network, run this at `mininet>` to test the load term:
 
@@ -134,7 +135,8 @@ The three cases take about six minutes.
 
 Results go to `results/qn4/<run>/<case>/`:
 
-- `qn4.png`: normalized cost of the attacked link, ICMP probe loss and TCP receiver throughput.
+- `qn4.png`: paths before/during/after, attacked-link cost, probe loss and TCP throughput.
+- `analysis-output.txt`: the same short summary printed in the terminal.
 - `result.json`: paths, blocking checks and before/during/after measurements.
 - `metrics.csv`: throughput and loss in 5-second bins.
 - `route_costs.csv`: old and new path costs using the same logged cost snapshot.
@@ -161,12 +163,30 @@ The h2→h6 case lost one of 100 ping probes and had a 5-second interval at
 0.0023 Mbps; the same TCP connection recovered and finished. Off-path
 attacks can also move h1 because routing uses the current load costs.
 
+The saved h2→h6 run prints:
+
+```text
+PASS h2-h6
+Source 10.0.0.2: drop rules on 6/6 switches
+Flood check (2.18 s): drop +119701, forward +0
+TCP paths: s1-s2-s6 / s1-s5-s6 / s1-s2-s6
+ICMP probes: 99/100 replies, 1.0% loss
+Receiver Mbps (before / during / after): 37.77 / 29.00 / 38.17
+Lowest 5-second receiver rate: 0.0023 Mbps
+Sampled path cost: 89.86 -> 20.00
+```
+
+[Controller, drop-rule and ping output](docs/qn4-output.md) shows the original
+log excerpts behind this summary.
+
 ![h2 to h6 rerouting](docs/images/qn4-h2-h6.png)
 
 Other cases: [h2→h3](docs/images/qn4-h2-h3.png),
 [h5→h6](docs/images/qn4-h5-h6.png). [Saved measurements](examples/qn4/phases.csv).
 
-Cost can rise again after recovery when TCP returns to the original link.
+Shading marks the flood command. The dotted line marks blocking; the dashed
+line marks the first observed return to the original TCP route. Cost can
+rise again when TCP returns to that link.
 The loss bars show individual 5-second windows, not whole-run loss.
 
 ## Stop or repeat
