@@ -1,4 +1,4 @@
-# CEG5101 CA2 — Qn1–3
+# CEG5101 CA2 — Qn1–4
 
 MiniEdit mesh topology with a Ryu controller for shortest-path routing,
 ICMP traffic monitoring, source IP blocking and dynamic link costs.
@@ -49,7 +49,7 @@ h1 ping -c 5 h6
 ```
 
 Our run returned `0% dropped (30/30 received)`.
-The normal h1→h6 path is s1–s2–s6, with switch-path cost 19.
+The normal h1→h6 path is s1–s2–s6, with base switch-path cost 15.
 
 ![pingall result](docs/images/pingall.png)
 
@@ -90,7 +90,10 @@ Qn3 runs in the same controller. Each inter-switch link uses:
 cost = base_cost + 30 × utilisation + 20 × anomaly
 ```
 
-The base cost is the topology delay. Utilisation is the larger of the two
+Base costs follow the supplied `resilient_controller.py`; unspecified links
+have cost 10. The physical TCLink delays are unchanged. This keeps all three
+Qn4 attack pairs on their requested links when the baseline flows start.
+Utilisation is the larger of the two
 directional TX rates divided by 40 Mbps, capped at 1. The anomaly penalty
 lasts 30 seconds; the source IP stays blocked.
 
@@ -111,7 +114,7 @@ switching back and forth every statistics interval. Only flows with new
 packets contribute destinations to the anomaly-path check; idle rules left
 by `pingall` are excluded.
 
-Five anomaly runs verified source blocking on all six switches, no further
+The earlier delay-based runs below verified source blocking on all six switches, no further
 forwarding from the blocked source, and penalty recovery. The continuous
 h1→h6 ping received 70/70 replies in four runs and 69/70 in one.
 Three TCP tests (120, 60 and 60 seconds) had no periodic route resets.
@@ -121,7 +124,45 @@ Three TCP tests (120, 60 and 60 seconds) had no periodic route resets.
 Saved measurements: [anomaly runs](examples/qn3/anomaly_runs.csv) and
 [TCP runs](examples/qn3/load_runs.csv). The TCP repeats also included a
 5-second h4→h3 flow, which selected s4–s5–s3 under load.
-The h5→h6 tests used s5–s3–s6; they do not verify the assignment's s5–s6 case.
+Those h5→h6 tests used s5–s3–s6. Qn4 below uses the reference base costs
+and verifies traffic on s5–s6.
+
+## Qn4: rerouting and performance
+
+Run all three cases:
+
+```bash
+bash scripts/run_qn4.sh
+```
+
+Each case starts a fresh test network. It establishes the source's ICMP
+baseline, starts a 90-second h1→h6 TCP flow, and sends a 10-second flood
+after 25 seconds. The cases are h2→h3, h2→h6 and h5→h6.
+The source path is checked against the requested link before the flood.
+The three cases take about six minutes in total.
+
+Results go to `results/qn4/<run>/<case>/`. `qn4.png` shows normalized link
+cost, ping loss and receiver throughput over time. TCP paths come from
+OpenFlow rules; ping loss comes from captured h1→h6 ICMP probes. These
+probes can use a different path from TCP. Throughput and loss use 5-second
+bins, with one ping per second.
+
+For each case, `result.json` records the paths, drop-rule checks and
+before/during/after measurements; `metrics.csv` contains the plotted rates
+and loss. The scripts retain the original logs, JSONL samples and ICMP capture.
+The `during` phase runs from flood start through penalty expiry.
+
+The saved tests verified all three target links, source blocking and route
+recovery. Loss and temporary throughput drops are retained, including a
+5-second interval at 0.0023 Mbps in the h2→h6 run. The same TCP connection
+subsequently recovered and finished.
+Off-path attacks can also move h1's TCP flow: fresh routing decisions use
+the current load costs on its original path.
+
+![h2 to h6 rerouting](docs/images/qn4-h2-h6.png)
+
+Other cases: [h2→h3](docs/images/qn4-h2-h3.png),
+[h5→h6](docs/images/qn4-h5-h6.png). [Saved measurements](examples/qn4/phases.csv).
 
 ## Optional: automated test and plots
 
@@ -142,6 +183,8 @@ bash scripts/run_qn2.sh plot
 The [saved Qn2 results](docs/qn2.md#saved-results) include measurements and
 figures from a separate automated run. Edit `tools/plot_style.py` to adjust colors, font and figure size.
 Plots are saved as PNG.
+Text uses Times New Roman when available, with STIXGeneral as the fallback;
+math uses STIX. Font settings are in `tools/plot_style.py`.
 
 Three fresh runs also passed the blocking and connectivity checks:
 

@@ -1,0 +1,10 @@
+case,phase,ping_sent,ping_received,loss_pct,receiver_mbps,tcp_paths
+h2-h3,before,24,24,0.0,37.3621,s1-s2-s6
+h2-h3,during,33,33,0.0,38.2541,s1-s2-s6;s1-s5-s6
+h2-h3,after,33,33,0.0,38.089,s1-s2-s6
+h2-h6,before,24,24,0.0,37.7714,s1-s2-s6
+h2-h6,during,38,37,2.6316,29.0005,s1-s2-s6;s1-s5-s6
+h2-h6,after,27,27,0.0,38.1693,s1-s2-s6
+h5-h6,before,24,24,0.0,38.2509,s1-s2-s6
+h5-h6,during,35,35,0.0,38.1681,s1-s5-s3-s6
+h5-h6,after,31,31,0.0,38.1327,s1-s2-s6

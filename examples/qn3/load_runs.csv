@@ -1,4 +1,4 @@
-run,duration_s,throughput_mbps,route_clear_events,path_changes,new_flow_path,controller_sha256
-stable-load-run1,120,38.0,0,0,s4-s5-s3,f5fa19f61b1078339e0b2044ffffadfdefbfdfce485e2ed84b29c84dd8ab6f23
-stable-load-run2,60,38.4,0,0,s4-s5-s3,0836360ae49c74324f479c7a0ca7dad8bc29f9c3755c92df20d0ca77f0a7e904
-stable-load-run3,60,38.6,0,0,s4-s5-s3,0836360ae49c74324f479c7a0ca7dad8bc29f9c3755c92df20d0ca77f0a7e904
+run,duration_s,throughput_mbps,route_clear_events,path_changes,new_flow_path
+stable-load-run1,120,38.0,0,0,s4-s5-s3
+stable-load-run2,60,38.4,0,0,s4-s5-s3
+stable-load-run3,60,38.6,0,0,s4-s5-s3

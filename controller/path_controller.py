@@ -13,6 +13,8 @@ source IP is blocked across the switches.
 30 October 2026: Added Dynamic Link Cost Update (Rerouting not implemented)
 2 November 2026: Keep existing paths on load updates; reroute on anomaly changes.
 Only apply anomaly penalties to active traffic paths.
+2 November 2026: Qn4 uses the reference controller's base costs (default 10).
+Match IPv4 protocols separately for concurrent TCP traffic and ICMP probes.
 """
 
 import heapq
@@ -32,6 +34,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 COOKIE = 0x51010001
 BLOCK_COOKIE = 0x51010002
+
+# From the provided resilient_controller.py. Other links have cost 10.
+BASE_COSTS = {(1, 2): 5.0, (2, 3): 10.0, (3, 4): 15.0,
+              (1, 4): 20.0, (2, 4): 8.0}
 
 # Q3: Dynamic link-cost parameters
 Q3_ALPHA = 30.0          # Load penalty weight (ms)
@@ -95,7 +101,7 @@ class PathController(app_manager.RyuApp):
                 link_key = tuple(sorted((u, v)))
 
                 # Original link delay
-                self.costs[link_key] = float(opts['delay'][:-2])
+                self.costs[link_key] = BASE_COSTS.get(link_key, 10.0)
                 # Q3: Link bandwidth in bits per second
                 self.link_bandwidths[link_key] = (float(opts['bw']) * 1_000_000)
 
@@ -531,10 +537,10 @@ class PathController(app_manager.RyuApp):
             if ip_pkt:
                 fields["ipv4_src"] = ip_pkt.src
                 fields["ipv4_dst"] = ip_pkt.dst
+                fields["ip_proto"] = ip_pkt.proto
                 if ip_pkt.proto == 1:
                     icmp_pkt = pkt.get_protocol(icmp.icmp)
                     if icmp_pkt is not None:
-                        fields["ip_proto"] = 1
                         fields["icmpv4_type"] = icmp_pkt.type
             self._add_flow( dp, 100, p.OFPMatch(**fields), [p.OFPActionOutput(port)],)
 

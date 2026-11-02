@@ -1,6 +1,6 @@
-run,traffic,detection_s,drop_rule_switches,drop_counter_delta,forward_counter_delta,penalty_recovered,h1_sent,h1_received,h1_loss_pct,affected_links,controller_sha256
-stable-h2-h3-run1,h2-h3,1.1558,6,96123,0,True,70,70,0.0,s2-s3,0836360ae49c74324f479c7a0ca7dad8bc29f9c3755c92df20d0ca77f0a7e904
-stable-h2-h6-run2,h2-h6,5.4895,6,93501,0,True,70,70,0.0,s2-s6,0836360ae49c74324f479c7a0ca7dad8bc29f9c3755c92df20d0ca77f0a7e904
-stable-h2-h6-run3,h2-h6,5.2192,6,88062,0,True,70,70,0.0,s2-s6,0836360ae49c74324f479c7a0ca7dad8bc29f9c3755c92df20d0ca77f0a7e904
-stable-h5-h6-run1,h5-h6,5.0123,6,89551,0,True,70,69,1.42857,s3-s5;s3-s6,0836360ae49c74324f479c7a0ca7dad8bc29f9c3755c92df20d0ca77f0a7e904
-stable-h5-h6-run2,h5-h6,5.2104,6,92856,0,True,70,70,0.0,s3-s5;s3-s6,0836360ae49c74324f479c7a0ca7dad8bc29f9c3755c92df20d0ca77f0a7e904
+run,traffic,detection_s,drop_rule_switches,drop_counter_delta,forward_counter_delta,penalty_recovered,h1_sent,h1_received,h1_loss_pct,affected_links
+stable-h2-h3-run1,h2-h3,1.1558,6,96123,0,True,70,70,0.0,s2-s3
+stable-h2-h6-run2,h2-h6,5.4895,6,93501,0,True,70,70,0.0,s2-s6
+stable-h2-h6-run3,h2-h6,5.2192,6,88062,0,True,70,70,0.0,s2-s6
+stable-h5-h6-run1,h5-h6,5.0123,6,89551,0,True,70,69,1.42857,s3-s5;s3-s6
+stable-h5-h6-run2,h5-h6,5.2104,6,92856,0,True,70,70,0.0,s3-s5;s3-s6

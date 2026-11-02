@@ -33,7 +33,7 @@ try:
     else:
         raise AssertionError('Topology did not become ready within 45 seconds')
     assert state['switches'] == [1, 2, 3, 4, 5, 6]
-    assert state['s1_to_s6'] == [1, 2, 6] and state['s1_to_s6_cost'] == 19
+    assert state['s1_to_s6'] == [1, 2, 6] and state['s1_to_s6_cost'] == 15
     report['topology'] = state
     report['pingall_loss_percent'] = net.pingAll(timeout='2')
     assert report['pingall_loss_percent'] == 0
@@ -59,7 +59,7 @@ try:
     (ROOT / 'results/logs/normal_flow_tables.txt').write_text(
         '\n'.join(name + '\n' + value for name, value in after.items()))
     report['passed'] = True
-    print('\nPASS: six hosts all reachable; h1 -> s1 -> s2 -> s6 -> h6; cost 19.')
+    print('\nPASS: six hosts all reachable; h1 -> s1 -> s2 -> s6 -> h6; cost 15.')
     print('Measured per-switch packet counter increases:', deltas)
 finally:
     (ROOT / 'results/data/normal_network_test.json').write_text(json.dumps(report, indent=2) + '\n')

@@ -1,7 +1,6 @@
 """Test Qn2 in a separate Mininet network and save the measurements."""
 import argparse
 import json
-import hashlib
 import os
 from pathlib import Path
 import re
@@ -34,9 +33,7 @@ if any('q2s%d' % i in bridges for i in range(1, 7)):
 topo = json.loads((ROOT / 'topology/assignment_mesh.mn').read_text())
 net = Mininet(topo=None, build=False, controller=None, switch=OVSSwitch, link=TCLink)
 nodes = {}
-report = {'passed': False, 'flood_duration_seconds': 10,
-          'controller_sha256': hashlib.sha256(
-              (ROOT / 'controller/path_controller.py').read_bytes()).hexdigest()}
+report = {'passed': False, 'flood_duration_seconds': 10}
 controller = None
 attack = None
 log_file = (output / 'controller.log').open('w')
