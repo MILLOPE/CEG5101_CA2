@@ -10,6 +10,7 @@ exceeding the configured threshold is flagged as anomalous, and the suspected
 source IP is blocked across the switches.
 
 28 October 2026: Added ICMP anomaly detection and source IP blocking.
+30 October 2026: Added Dynamic Link Cost Update (Rerouting not implemented)
 """
 
 import heapq
@@ -25,10 +26,15 @@ from ryu.lib.packet import packet, ethernet, ether_types, ipv4, icmp
 from ryu.ofproto import ofproto_v1_3
 from ryu.topology.api import get_switch, get_link
 
-
 ROOT = Path(__file__).resolve().parents[1]
+
 COOKIE = 0x51010001
 BLOCK_COOKIE = 0x51010002
+
+# Q3: Dynamic link-cost parameters
+Q3_ALPHA = 30.0          # Load penalty weight (ms)
+Q3_BETA = 20.0           # Anomaly penalty weight (ms)
+Q3_ANOMALY_HOLD_SECONDS = 30.0
 
 def shortest_path(graph, start, goal):
     """Dijkstra: return (switch list, total cost), or ([], infinity)."""
@@ -46,7 +52,6 @@ def shortest_path(graph, start, goal):
             if neighbor not in visited:
                 heapq.heappush(queue, (cost + weight, path + (neighbor,)))
     return [], float('inf')
-
 
 def spanning_tree(graph):
     """Prim's algorithm, with deterministic tie-breaking; return tree edges."""
@@ -67,21 +72,33 @@ def spanning_tree(graph):
                 heapq.heappush(queue, (cost, v, nxt))
     return tree
 
-
 class PathController(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 
     def __init__(self, *args, **kwargs):
+        """Initialize the controller, topology configuration, monitoring and routing state."""
         super().__init__(*args, **kwargs)
         topo = json.loads((ROOT / 'topology/assignment_mesh.mn').read_text())
         self.expected_switches = {int(s['opts']['dpid'], 16) for s in topo['switches']}
         self.costs, self.access_ports = {}, {}
         self.expected_ports = {}
+
+        self.last_dynamic_paths = {}
+
+        # Link bandwidths, using the topology configuration
+        self.link_bandwidths = {}
+
         for link in topo['links']:
             a, b, opts = link['src'], link['dest'], link['opts']
             if a.startswith('s') and b.startswith('s'):
                 u, v = int(a[1:]), int(b[1:])
-                self.costs[tuple(sorted((u, v)))] = float(opts['delay'][:-2])
+                link_key = tuple(sorted((u, v)))
+
+                # Original link delay
+                self.costs[link_key] = float(opts['delay'][:-2])
+                # Q3: Link bandwidth in bits per second
+                self.link_bandwidths[link_key] = (float(opts['bw']) * 1_000_000)
+
                 self.expected_ports[u, v] = opts['port1']
                 self.expected_ports[v, u] = opts['port2']
             else:
@@ -100,6 +117,24 @@ class PathController(app_manager.RyuApp):
         # Source IPs detected and blocked
         self.blocked_ips = set()
 
+        # Q3: Dynamic link-cost parameters
+        self.q3_alpha = Q3_ALPHA
+        self.q3_beta = Q3_BETA
+        # Previous OpenFlow port counters
+        self.last_port_stats = {}
+        self.port_stats_pending = set()
+        self.anomaly_expiry = {}
+        # Measured link transmission rates
+        self.link_rates_bps = {}
+        # Dynamic costs for switch-to-switch links
+        self.dynamic_costs = {}
+        # Anomaly-affected links
+        self.anomaly_links = set()
+        # Host IP-to-switch mapping
+        self.ip_to_switch = {host['opts']['ip'].split('/')[0]: int(link['src'][1:]) for host in topo['hosts'] for link in topo['links'] if link['dest'] == host['opts']['hostname'] and link['src'].startswith('s')}
+        # Dynamic link-cost log
+        self.q3_path = ROOT / 'results/data' / ('qn3-%s.jsonl' % time.time_ns())
+
         self.graph, self.ports, self.tree = {}, {}, set()
         self.ready = False
         self.signature = None
@@ -116,6 +151,7 @@ class PathController(app_manager.RyuApp):
         self.stats_monitor = hub.spawn(self._monitor_stats)
 
     def _add_flow(self, dp, priority, match, actions, cookie=COOKIE):
+        """Install an OpenFlow rule on the specified switch."""
         p, ofp = dp.ofproto_parser, dp.ofproto
         instructions = [p.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions)]
         dp.send_msg(p.OFPFlowMod(datapath=dp, cookie=cookie, priority=priority,
@@ -123,6 +159,7 @@ class PathController(app_manager.RyuApp):
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features(self, ev):
+        """Install the table-miss rule and apply existing source-blocking rules when a switch connects."""
         dp = ev.msg.datapath
         self.datapaths[dp.id] = dp
         p, ofp = dp.ofproto_parser, dp.ofproto
@@ -135,12 +172,15 @@ class PathController(app_manager.RyuApp):
 
     @set_ev_cls(ofp_event.EventOFPStateChange, [MAIN_DISPATCHER, DEAD_DISPATCHER])
     def state_change(self, ev):
+        """Track connected switches and pending statistics replies."""
         if ev.state == DEAD_DISPATCHER:
             self.datapaths.pop(ev.datapath.id, None)
+            self.port_stats_pending.discard(ev.datapath.id)
         else:
             self.datapaths[ev.datapath.id] = ev.datapath
 
     def _save_q2_sample(self, ip_src, rate, before, after, status):
+        """Record ICMP traffic measurements and anomaly-detection results for Q2."""
         # Keep the values used in the decision so the plots can be reproduced.
         sample = {'time': time.time(), 'source': ip_src, 'rate_pps': rate,
                   'baseline_before': before, 'baseline_after': after,
@@ -149,23 +189,154 @@ class PathController(app_manager.RyuApp):
         with self.q2_path.open('a') as output:
             output.write(json.dumps(sample) + '\n')
 
-    # Q2: Traffic monitoring
+    def _dynamic_graph(self):
+        """Construct the routing graph using the current dynamic link costs."""
+        dynamic_graph = {}
+        for u, neighbors in self.graph.items():
+            dynamic_graph[u] = {}
+            for v, base_cost in neighbors.items():
+                dynamic_graph[u][v] = self.dynamic_costs.get((u, v), base_cost)
+        return dynamic_graph
+
+    def _update_dynamic_costs(self, log_samples=True):
+        """Update dynamic link costs and recalculate shortest paths."""
+        now = time.time()
+        for link_key, expiry in list(self.anomaly_expiry.items()):
+            if now >= expiry:
+                self.anomaly_expiry.pop(link_key, None)
+                self.anomaly_links.discard(link_key)
+                self.logger.info("Q3: Anomaly penalty expired on s%s-s%s", *link_key)
+        samples = []
+        for u, neighbors in self.graph.items():
+            for v, base_cost in neighbors.items():
+                if u >= v:
+                    continue
+                link_key = (u, v)
+                port_uv = self.ports.get((u, v))
+                port_vu = self.ports.get((v, u))
+                rate_uv = self.link_rates_bps.get((u, port_uv), 0.0)
+                rate_vu = self.link_rates_bps.get((v, port_vu), 0.0)
+                rate = max(rate_uv, rate_vu)
+                max_rate = self.link_bandwidths[link_key]
+                utilisation = min(rate / max_rate, 1.0) if max_rate > 0 else 0.0
+                anomaly = int(link_key in self.anomaly_links)
+                load_penalty = self.q3_alpha * utilisation
+                anomaly_penalty = self.q3_beta * anomaly
+                dynamic_cost = base_cost + load_penalty + anomaly_penalty
+                self.dynamic_costs[(u, v)] = dynamic_cost
+                self.dynamic_costs[(v, u)] = dynamic_cost
+                samples.append({
+                    'time': now, 'src': u, 'dst': v,
+                    'base_cost': base_cost, 'rate_bps': rate,
+                    'max_rate_bps': max_rate, 'utilisation': utilisation,
+                    'load_penalty': load_penalty, 'anomaly': anomaly,
+                    'anomaly_penalty': anomaly_penalty,
+                    'dynamic_cost': dynamic_cost,
+                    'normalized_cost': dynamic_cost / base_cost
+                })
+        if log_samples and samples:
+            with self.q3_path.open('a') as output:
+                for sample in samples:
+                    output.write(json.dumps(sample) + '\n')
+        dynamic_graph = self._dynamic_graph()
+        current_paths = {}
+        for source in dynamic_graph:
+            for destination in dynamic_graph:
+                if source < destination:
+                    path, cost = shortest_path(dynamic_graph, source, destination)
+                    current_paths[(source, destination)] = tuple(path)
+        if self.last_dynamic_paths and current_paths != self.last_dynamic_paths:
+            self._clear_routes()
+            self.logger.info("Q3: Dynamic costs changed shortest paths; forwarding rules cleared")
+        self.last_dynamic_paths = current_paths
+
+    def _mark_anomaly_path(self, ip_src, destinations):
+        """Apply a temporary cost penalty to links affected by an anomaly."""
+        source_switch = self.ip_to_switch.get(ip_src)
+        if source_switch is None:
+            return
+        dynamic_graph = self._dynamic_graph()
+        marked_links = set()
+        for ip_dst in destinations:
+            destination_switch = self.ip_to_switch.get(ip_dst)
+            if destination_switch is None:
+                continue
+            path, cost = shortest_path(dynamic_graph, source_switch, destination_switch)
+            for u, v in zip(path, path[1:]):
+                marked_links.add(tuple(sorted((u, v))))
+        expiry = time.time() + Q3_ANOMALY_HOLD_SECONDS
+        for link_key in marked_links:
+            self.anomaly_links.add(link_key)
+            self.anomaly_expiry[link_key] = expiry
+        if marked_links:
+            self.logger.warning("Q3: Anomaly penalty applied to links %s for %.0f seconds", sorted(marked_links), Q3_ANOMALY_HOLD_SECONDS)
+            self._update_dynamic_costs(log_samples=False)
+
+    # Q3: Process OpenFlow port statistics
+    @set_ev_cls(ofp_event.EventOFPPortStatsReply, MAIN_DISPATCHER)
+    def port_stats_reply(self, ev):
+        """Calculate inter-switch link rates and update costs after all replies."""
+        dp = ev.msg.datapath
+        dpid = dp.id
+        now = time.time()
+        inter_switch_ports = {
+            port for (switch, neighbor), port in self.ports.items()
+            if switch == dpid
+        }
+        for stat in ev.msg.body:
+            port_no = stat.port_no
+            if port_no not in inter_switch_ports:
+                continue
+            key = (dpid, port_no)
+            current_bytes = stat.tx_bytes
+            previous = self.last_port_stats.get(key)
+            self.last_port_stats[key] = (current_bytes, now)
+            if previous is None:
+                continue
+            previous_bytes, previous_time = previous
+            elapsed = max(now - previous_time, 0.001)
+            byte_delta = max(0, current_bytes - previous_bytes)
+            self.link_rates_bps[key] = byte_delta * 8 / elapsed
+        if ev.msg.flags & dp.ofproto.OFPMPF_REPLY_MORE:
+            return
+        self.port_stats_pending.discard(dpid)
+        if not self.port_stats_pending:
+            self._update_dynamic_costs()
+
+    # Q2 and Q3: Request flow and port statistics
     def _monitor_stats(self):
-        """Periodically request OpenFlow flow statistics."""
+        """Periodically request flow and port statistics."""
         hub.sleep(10)
         while True:
-            for dp in list(self.datapaths.values()):
-                try:
-                    parser = dp.ofproto_parser
-                    request = parser.OFPFlowStatsRequest(dp, table_id=0, match=parser.OFPMatch(),)
-                    dp.send_msg(request)
-                except Exception:
-                    self.logger.exception("Failed to request statistics from s%s", dp.id)
+            datapaths = list(self.datapaths.values())
+            if not self.port_stats_pending:
+                self.port_stats_pending = {dp.id for dp in datapaths}
+                for dp in datapaths:
+                    try:
+                        parser = dp.ofproto_parser
+                        dp.send_msg(parser.OFPFlowStatsRequest(
+                            dp, table_id=0, match=parser.OFPMatch()
+                        ))
+                        dp.send_msg(parser.OFPPortStatsRequest(
+                            dp, 0, dp.ofproto.OFPP_ANY
+                        ))
+                    except Exception:
+                        self.logger.exception("Failed to request statistics from s%s", dp.id)
+                        self.port_stats_pending.discard(dp.id)
+            else:
+                for dp in datapaths:
+                    try:
+                        parser = dp.ofproto_parser
+                        dp.send_msg(parser.OFPFlowStatsRequest(
+                            dp, table_id=0, match=parser.OFPMatch()
+                        ))
+                    except Exception:
+                        self.logger.exception("Failed to request flow statistics from s%s", dp.id)
             hub.sleep(5)
 
     @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
     def flow_stats_reply(self, ev):
-        """Calculate source-IP traffic rates and detect anomalies."""
+        """Calculate ICMP source traffic rates, update EMA baselines and detect anomalies."""
         dp = ev.msg.datapath
         dpid = dp.id
         now = time.time()
@@ -178,33 +349,35 @@ class PathController(app_manager.RyuApp):
             elapsed = max(now - previous_time, 0.001)
         previous_counts = self.last_counts.setdefault(dpid, {})
         source_deltas = {}
+
+        source_destinations = {}
         for stat in ev.msg.body:
-            
             # Count only IPv4 ICMP echo requests, not echo replies.
             if (stat.match.get("eth_type") != 0x0800 or stat.match.get("ip_proto") != 1 or stat.match.get("icmpv4_type") != 8):
                     continue
             
             ip_src = stat.match.get("ipv4_src")
             in_port = stat.match.get("in_port")
-            # Count traffic entering from hosts, not traffic transiting
-            # intermediate switches. This avoids counting one packet
-            # repeatedly as it traverses the network.
+            # Count traffic entering from hosts, not traffic transiting intermediate switches. This avoids counting one packet repeatedly as it traverses the network.
             if (not ip_src or in_port not in self.access_ports.get(dpid, set())):
                 continue
-            # Identify individual flows rather than using the source IP
-            # alone as the counter key.
-            # flow_key = (in_port, stat.match.get("eth_src"), stat.match.get("eth_dst"), stat.match.get("eth_type"), ip_src, stat.match.get("ipv4_dst"),)
-
+            # Identify individual flows rather than using the source IP alone as the counter key.
             flow_key = (in_port, stat.match.get("eth_src"), stat.match.get("eth_dst"), stat.match.get("eth_type"), stat.match.get("ip_proto"), stat.match.get("icmpv4_type"), ip_src, stat.match.get("ipv4_dst"),)
 
             total = stat.packet_count
             previous = previous_counts.get(flow_key)
             previous_counts[flow_key] = total
+
+            ip_dst = stat.match.get("ipv4_dst")
+            if ip_dst:
+                source_destinations.setdefault(ip_src, set()).add(ip_dst)
+
             # A new flow's existing counter is not a measured interval.
             if previous is None or elapsed is None:
                 continue
             delta = max(0, total - previous)
-            source_deltas[ip_src] = (source_deltas.get(ip_src, 0) + delta)
+            source_deltas[ip_src] = source_deltas.get(ip_src, 0) + delta
+
         for ip_src, delta in source_deltas.items():
             rate_pps = delta / elapsed
             entry = self.source_stats.get(ip_src)
@@ -222,10 +395,15 @@ class PathController(app_manager.RyuApp):
             # Detect using the previous baseline, before updating the EMA.
             anomalous = (baseline > 0 and rate_pps > self.threshold_multiplier * baseline)
             status = 'blocked' if ip_src in self.blocked_ips else 'normal'
+
             if anomalous and ip_src not in self.blocked_ips:
                 status = 'detected'
-                self.logger.warning("Q2 ANOMALY: IP=%s rate=%.2f pps baseline=%.2f pps", ip_src, rate_pps, baseline,)
+                self.logger.warning("Q2 ANOMALY: IP=%s rate=%.2f pps baseline=%.2f pps",ip_src, rate_pps, baseline)
+                # Q3: Reuse the existing Q2 anomaly detection result.
+                self._mark_anomaly_path(ip_src, source_destinations.get(ip_src, set()))
+                # Q2: Preserve existing source-blocking behaviour.
                 self._block_ip(ip_src)
+
             elif rate_pps > 0 and ip_src not in self.blocked_ips:
                 entry["baseline"] = (self.alpha * rate_pps + (1 - self.alpha) * baseline)
             self._save_q2_sample(ip_src, rate_pps, baseline, entry['baseline'], status)
@@ -248,6 +426,7 @@ class PathController(app_manager.RyuApp):
         self.logger.warning("Q2 BLOCKED: IP=%s switches=%d", ip_src, len(self.datapaths),)
 
     def _clear_routes(self):
+        """Remove existing forwarding rules while preserving other OpenFlow rules."""
         # Delete only this application's forwarding rules, preserving table-miss
         # and any future firewall rules with different cookies.
         for dp in self.datapaths.values():
@@ -283,9 +462,12 @@ class PathController(app_manager.RyuApp):
                     self._clear_routes()
                     self.graph, self.ports = graph, ports
                     self.tree = spanning_tree(graph)
+
+                    # Q3: Initialize dynamic costs from original link delays.
+                    self.dynamic_costs = {(u, v): cost for u, neighbors in graph.items() for v, cost in neighbors.items()}
+                    
                     self.signature, self.ready = signature, ready
-                    self.logger.info('Topology: %s switches, %s/11 links; ready=%s',
-                                     len(graph), len(ports)//2, ready)
+                    self.logger.info('Topology: %s switches, %s/11 links; ready=%s', len(graph), len(ports)//2, ready)
                     self._write_state()
                 previous = signature
             except Exception:
@@ -295,20 +477,18 @@ class PathController(app_manager.RyuApp):
             hub.sleep(1)
 
     def _write_state(self):
-        path, cost = shortest_path(self.graph, 1, 6)
-        state = {'time': time.time(), 'ready': self.ready,
-                 'switches': sorted(self.graph),
-                 'links': [{'src': u, 'dst': v, 'cost': w,
-                            'src_port': self.ports[u, v], 'dst_port': self.ports[v, u]}
-                           for u in self.graph for v, w in self.graph[u].items() if u < v],
-                 'mst': sorted(self.tree), 's1_to_s6': path,
-                 's1_to_s6_cost': cost if path else None}
+        """Save the current topology, link costs and shortest path to the state file."""
+        dynamic_graph = self._dynamic_graph()
+        path, cost = shortest_path(dynamic_graph, 1, 6)
+
+        state = {'time': time.time(), 'ready': self.ready, 'switches': sorted(self.graph), 'links': [{'src': u, 'dst': v, 'cost': w, 'dynamic_cost': self.dynamic_costs.get((u, v), w), 'src_port': self.ports[u, v], 'dst_port': self.ports[v, u]} for u in self.graph for v, w in self.graph[u].items() if u < v], 'mst': sorted(self.tree), 's1_to_s6': path, 's1_to_s6_cost': cost if path else None}
         temporary = self.state_path.with_suffix('.tmp')
         temporary.write_text(json.dumps(state, indent=2) + '\n')
         temporary.replace(self.state_path)
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def packet_in(self, ev):
+        """Learn host locations, calculate forwarding paths and handle incoming packets."""
         msg, dp = ev.msg, ev.msg.datapath
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocol(ethernet.ethernet)
@@ -328,8 +508,7 @@ class PathController(app_manager.RyuApp):
             self.hosts[eth.src] = (switch, incoming)
         p = dp.ofproto_parser
         if eth.dst not in self.hosts or int(eth.dst[:2], 16) & 1:
-            # Flood only on MST edges plus host-facing ports. Ignore packets
-            # entering through a non-tree inter-switch port to prevent loops.
+            # Flood only on MST edges plus host-facing ports. Ignore packets entering through a non-tree inter-switch port to prevent loops.
             tree_ports = {self.ports[switch, n] for n in self.graph.get(switch, {})
                           if tuple(sorted((switch, n))) in self.tree}
             if not access and incoming not in tree_ports:
@@ -337,16 +516,17 @@ class PathController(app_manager.RyuApp):
             outgoing = (tree_ports | self.access_ports.get(switch, set())) - {incoming}
         else:
             destination, host_port = self.hosts[eth.dst]
-            path, cost = shortest_path(self.graph, switch, destination)
+
+            # Q3: Use dynamic link costs for Dijkstra routing.
+            dynamic_graph = self._dynamic_graph()
+            path, cost = shortest_path(dynamic_graph, switch, destination
+)
             if not path:
                 return
             port = host_port if len(path) == 1 else self.ports[path[0], path[1]]
             if port == incoming:
                 return
             outgoing = {port}
-            # fields = dict(in_port=incoming, eth_src=eth.src, eth_dst=eth.dst,
-            #               eth_type=eth.ethertype)
-            # self._add_flow(dp, 100, p.OFPMatch(**fields), [p.OFPActionOutput(port)])
 
             fields = dict(in_port=incoming, eth_src=eth.src, eth_dst=eth.dst, eth_type=eth.ethertype,)
             if ip_pkt:
